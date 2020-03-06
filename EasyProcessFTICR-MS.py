@@ -39,18 +39,6 @@ import FTICR_INTER as FI
 #I.hidecode(initial='show', message=False)
 w = FI.IFTMS()
 
-# %%
-w.datap
-
-# %%
-w.MAX_DISP_PEAKS
-
-# %%
-w.MAX_DISP_PEAKS
-
-# %%
-w.MAX_DISP_PEAKS
-
 # %% [markdown]
 # ## TO-DO
 #

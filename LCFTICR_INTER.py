@@ -26,6 +26,7 @@ from spike.Interactive.ipyfilechooser import FileChooser
 from spike.FTMS import FTMSData
 from spike.FTICR import FTICRData
 from spike.File.HDF5File import HDF5File
+import FTICR_INTER as FI
 
 # REACTIVE modify callback behaviour
 # True is good for inline mode / False is better for notebook mode
