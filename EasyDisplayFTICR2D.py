@@ -6,8 +6,8 @@
 #     text_representation:
 #       extension: .py
 #       format_name: percent
-#       format_version: '1.2'
-#       jupytext_version: 1.2.4
+#       format_version: '1.3'
+#       jupytext_version: 1.3.4
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -52,7 +52,7 @@ display(Markdown('## STARTING Environment...'))
 # %matplotlib widget
 import spike
 from spike.Interactive.INTER import hidecode
-import spike.Interactive.FTICR_INTER_v2 as IF2
+import FTICR2D_INTER as IF2
 display(Markdown('## ... program is ready'))
 from importlib import reload  # the two following lines are debugging help
 reload(IF2)                   # and can be removed safely when in production
