@@ -7,7 +7,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.3.1
+#       jupytext_version: 1.3.4
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -44,6 +44,9 @@
 # The smaller the zoom box, the better the resolution.
 
 # %%
+%
+
+# %%
 ### Initialization of the environment
 ### the following cell should be run only once *(but no harm if you run it twice)* .
 
@@ -56,7 +59,6 @@ import LCFTICR_INTER as IF2
 display(Markdown('## ... program is ready'))
 from importlib import reload  # the two following lines are debugging help
 reload(IF2)                   # and can be removed safely when in production
-hidecode(initial='show', message=False)
 ms = IF2.MS2Dscene(root='.')
 
 # %% [markdown]

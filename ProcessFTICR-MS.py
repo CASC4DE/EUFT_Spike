@@ -6,8 +6,8 @@
 #     text_representation:
 #       extension: .py
 #       format_name: percent
-#       format_version: '1.2'
-#       jupytext_version: 1.2.4
+#       format_version: '1.3'
+#       jupytext_version: 1.3.4
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -18,29 +18,26 @@
 # # FTICR-MS Processing and Display
 #
 # a simplified environment for processing 1D Bruker FTICR datasets with `SPIKE`
-#
-# Run the first python cell by using the ⇥Run button above 
-#
-
-# %% [markdown]
-# ### Initialization of the environment
-# the following cell should be run only once, at the beginning of the processing
 
 # %%
-# load all python and interactive tools - run only once
+# #%%capture
+
+# load all python and interactive tools
 from IPython.display import display, HTML, Markdown, Image
-display(Markdown('## STARTING Environment...'))
+#display(Markdown('## STARTING Environment...'))
 # %matplotlib widget
 # %xmode Plain
 # Plain or Minimal.
 import spike
 from spike.Interactive import INTER as I
-I.hidecode(initial='hide', message=False)
 import FTICR_INTER as FI
-w = FI.IFTMS()
-#display(Markdown('## ... program is Ready'))
-display(w);
 
+
+
+# %%
+#display(Markdown('## ... program is Ready'))
+#I.hidecode(initial='show', message=False)
+w = FI.IFTMS()
 
 # %%
 w.datap
@@ -60,7 +57,7 @@ w.MAX_DISP_PEAKS
 # - warning message in peak-picking
 # - DeltaM in peaklist
 # - calibration
-# - 
+# - pp : sigma + %max
 
 # %% [markdown]
 # # Documentation
