@@ -19,11 +19,11 @@ import ipywidgets as widgets
 from IPython.display import display, Markdown, HTML, Image
 import numpy as np
 
-from .. import FTICR
-from ..NPKData import flatten, parsezoom
-from .ipyfilechooser import FileChooser
-from ..FTMS import FTMSData
-from ..FTICR import FTICRData
+from spike import FTICR
+from spike.NPKData import flatten, parsezoom
+from spike.Interactive.ipyfilechooser import FileChooser
+from spike.FTMS import FTMSData
+from spike.FTICR import FTICRData
 
 # REACTIVE modify callback behaviour
 # True is good for inline mode / False is better for notebook mode

@@ -98,3 +98,7 @@ w = FI.IFTMS()
 
 # %% [markdown]
 # *the following cell display the colormap used here*
+
+# %%
+
+# %%

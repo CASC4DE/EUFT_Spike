@@ -213,8 +213,12 @@ class IFTMS(object):
         self.out1D.clear_output(wait=True)
         self.form2param()
         self.datap.process()
+        DATA = self.datap.DATA
+        ti = self.selected
         with self.out1D:
-            self.datap.DATA.display(title=self.selected)
+#            fig,ax = plt.subplots(figsize=(1,2))
+             DATA.display()
+#        DATA.display()
         self.showinfo()
         self.tabs.selected_index = 1
         self.done()
