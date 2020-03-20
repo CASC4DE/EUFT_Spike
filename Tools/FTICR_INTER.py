@@ -25,7 +25,7 @@ from spike.NPKData import flatten, parsezoom
 from spike.FTMS import FTMSData
 from spike.FTICR import FTICRData
 from spike.File import BrukerMS
-import utilities as U
+from . import utilities as U
 
 # REACTIVE modify callback behaviour
 # True is good for inline mode / False is better for notebook mode
@@ -33,13 +33,14 @@ REACTIVE = True
 HEAVY = False
 DEBUG = False
 
-SIZEMAX = 8*1024*1024       # largest zone to display
+BASE = 'FTICR_DATA'              # name of the 
+SIZEMAX = 8*1024*1024        # largest zone to display
 NbMaxDisplayPeaks = 200      # maximum number of peaks to display at once
 
 # TOOLS FOR 1D FTICR
 class FileChooser(VBox):
     """a simple chooser for Jupyter for selecting *.d directories"""
-    def __init__(self, base='FT-ICR'):
+    def __init__(self, base=BASE):
         super().__init__()
         filelistraw = [str(i.relative_to(base)) for i in Path(base).glob('**/*.d')]
         filelistproc = [str(i.relative_to(base)) for i in Path(base).glob('**/*.msh5')]

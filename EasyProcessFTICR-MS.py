@@ -30,8 +30,7 @@ from IPython.display import display, HTML, Markdown, Image
 # Plain or Minimal.
 import spike
 from spike.Interactive import INTER as I
-import FTICR_INTER as FI
-
+import Tools.FTICR_INTER as FI
 
 
 # %%
