@@ -40,7 +40,7 @@ NbMaxDisplayPeaks = 200      # maximum number of peaks to display at once
 # TOOLS FOR 1D FTICR
 class FileChooser(VBox):
     """a simple chooser for Jupyter for selecting *.d directories"""
-    def __init__(self, base=BASE):
+    def __init__(self, base='DATA'):
         super().__init__()
         filelistraw = [str(i.relative_to(base)) for i in Path(base).glob('**/*.d')]
         filelistproc = [str(i.relative_to(base)) for i in Path(base).glob('**/*.msh5')]
@@ -80,7 +80,7 @@ class IFTMS(object):
     def __init__(self, show=True, base='FT-ICR'):
         # header
         #   filechooser
-        self.base = 'FT-ICR'
+        self.base = BASE
         self.filechooser = FileChooser(self.base)
         self.datap = None
         self.MAX_DISP_PEAKS = NbMaxDisplayPeaks
@@ -96,15 +96,18 @@ class IFTMS(object):
         self.bproc.on_click(self.process)
         #       pp
         self.bpeak = Button(description='Peak Pick',layout=Layout(width='15%'),
-                button_style='success', tooltip='load and display experiment')
+                button_style='success', tooltip='Detect Peaks')
         self.bpeak.on_click(self.peakpick)
+        self.bsave = Button(description='Save',layout=Layout(width='15%'),
+                button_style='success', tooltip='Save processed data set in msh5 format')
+        self.bsave.on_click(self.save)
 
         # GUI set-up and scene
         # tools 
         self.header = Output()
         with self.header:
             self.waitarea = Output()
-            self.buttonbar = HBox([self.bload, self.bproc, self.bpeak, self.waitarea])
+            self.buttonbar = HBox([self.bload, self.bproc, self.bpeak, self.bsave, self.waitarea])
             display(Markdown('---\n# Select an experiment, and process'))
             display(self.filechooser)
             display(self.buttonbar)
@@ -114,16 +117,18 @@ class IFTMS(object):
         self.fid = Output()  # the area where 1D is shown
         with self.fid:
             display(NODATA)
-
+            display(Markdown("use the `Load` button above"))
         # spectrum
         self.out1D = Output()  # the area where 1D is shown
         with self.out1D:
             display(NODATA)
+            display(Markdown("After loading, use the `Process` or `Load` buttons above"))
 
         # peaklist
         self.peaklist = Output()  # the area where peak list is shown
         with self.peaklist:
             display(NODATA)
+            display(Markdown("After Processing, use the `Peak Pick` button above"))
 
         # form
         self.outform = Output()  # the area where processing parameters are displayed
@@ -156,19 +161,28 @@ class IFTMS(object):
             display(self.box)
 
     def showinfo(self):
+        """
+        Show info on the data-set in memory - several possible cases 
+        """
         self.outinfo.clear_output()
         with self.outinfo:
             if self.datap == None:
                 display(HTML("<br><br><h3><i><center>No Data</center></i></h3>"))
             else:
-                display( Markdown("# Raw Dataset\n%s\n"%(self.selected,)) )
-                print(self.datap.data)
-                if self.datap.DATA != None:
-                    with open('audit_trail.txt','r') as F:
-                        display(Markdown(F.read()))
+                if self.datap.data:              #  a fid is load
+                    display( Markdown("# Raw Dataset\n%s\n"%(self.selected,)) )
+                    print(self.datap.data)
+                    if self.datap.DATA != None:  # and has been processed
+                        display( Markdown("# Audi-Trail") )
+                        with open('audit_trail.txt','r') as F:
+                            display(Markdown(F.read()))
+                else:
+                    if self.datap.DATA != None:  # a processed has been loaded
+                        display( Markdown("# Processed Dataset\n%s\n"%(self.selected,)) )
+                        print(self.datap.data)
     def wait(self):
         "show a little waiting wheel"
-        with open("icon-loader.gif", "rb") as F:
+        with open("Tools/icon-loader.gif", "rb") as F:
             with self.waitarea:
                 self.wwait = widgets.Image(value=F.read(),format='gif',width=40)
                 display(self.wwait)
@@ -180,8 +194,36 @@ class IFTMS(object):
         return self.filechooser.selec.value
 
     def load(self, e):
-        "load 1D fid and display"
+        "load 1D data-set and display"
         self.fid.clear_output(wait=True)
+        if self.selected.endswith(".msh5"):
+            print("SPIKE")
+            self.loadspike()
+        else:
+            self.loadbruker()
+    def loadspike(self):
+        fullpath = op.join(self.base,self.selected)
+        try:
+            DATA = FTICRData(name=fullpath)
+        except:
+            with self.waitarea:
+                print('Error while loading',self.selected)
+                self.waitarea.clear_output(wait=True)
+            return
+        data = None
+        DATA.filename = self.selected
+        DATA.fullpath = fullpath
+        DATA.set_unit('m/z')
+        self.datap = Dataproc(data)
+        self.datap.data = None
+        self.datap.DATA = DATA
+        self.showinfo()
+        self.out1D.clear_output()
+        with self.out1D:
+            DATA.display(title=self.selected, new_fig={'figsize':(10,5)})
+        self.tabs.selected_index = 1
+
+    def loadbruker(self):
         fullpath = op.join(self.base,self.selected)
         try:
             data = BrukerMS.Import_1D(fullpath)
@@ -194,7 +236,7 @@ class IFTMS(object):
         data.fullpath = fullpath
         data.set_unit('sec')
         with self.fid:
-            data.display(title=self.selected)
+            data.display(title=self.selected,new_fig={'figsize':(10,5)})
         self.datap = Dataproc(data)
         self.showinfo()
         self.param2form(self.datap.procparam)
@@ -203,11 +245,55 @@ class IFTMS(object):
             display(self.form)
         self.tabs.selected_index = 0
 
+    def save(self, e):
+        "save 1D spectrum to msh5 file"
+        self.wait()
+        audit = U.auditinitial(title="Save file", append=False)
+        # find name
+        fullpath = op.join(self.base,self.selected)
+        # increment filename to find an available name
+        i = 1
+        ok = False
+        while not ok:
+            expname = op.join(fullpath,'Processed_%d.msh5'%(i))
+            if op.exists(expname):
+                i += 1
+            else:
+                ok = True
+        # clean if required
+        self.form2param()
+        parameters = self.datap.procparam
+        data = self.datap.DATA
+        compress = False
+        if parameters['grass_noise_todo'] == 'storage':           # to do !
+            print("text", "grass noise removal","noise threshold", parameters['grass_noise_level'])
+            data.zeroing(parameters['grass_noise_level']*data.noise)
+            data.eroding()
+            compress = True
+            U.audittrail( audit, "text", "grass noise removal",
+                "noise threshold", parameters['grass_noise_level'])
+        try:
+            self.datap.DATA.save_msh5(expname, compressed=compress)
+        except:
+            with self.waitarea:
+                print('Error while saving to file',self.selected)
+                self.waitarea.clear_output(wait=True)
+            return
+        self.datap.DATA.filename = expname
+        with self.outinfo:
+            display(Markdown("""# Save locally
+ Data set saved to %s
+ """%(expname,)))
+        self.done()
+        with self.waitarea:
+            print('Data-set saved')
+            self.waitarea.clear_output(wait=True)
+
     def process(self,e):
         "do the FT"
         if self.datap == None:
             with self.waitarea:
-                print('Please load a dataset first')
+                print('Please load a raw dataset first')
                 self.waitarea.clear_output(wait=True)
             return
         self.wait()
@@ -217,9 +303,7 @@ class IFTMS(object):
         DATA = self.datap.DATA
         ti = self.selected
         with self.out1D:
-#            fig,ax = plt.subplots(figsize=(1,2))
-             DATA.display()
-#        DATA.display()
+            DATA.display(title=self.selected, new_fig={'figsize':(10,5)})
         self.showinfo()
         self.tabs.selected_index = 1
         self.done()

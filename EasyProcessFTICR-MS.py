@@ -20,7 +20,7 @@
 # a simplified environment for processing 1D Bruker FTICR datasets with `SPIKE`
 
 # %%
-# #%%capture
+# %%capture
 
 # load all python and interactive tools
 from IPython.display import display, HTML, Markdown, Image
@@ -36,35 +36,40 @@ import Tools.FTICR_INTER as FI
 # %%
 #display(Markdown('## ... program is Ready'))
 #I.hidecode(initial='show', message=False)
+from importlib import reload
+reload(FI)
 w = FI.IFTMS()
 
 # %% [markdown]
-# ## TO-DO
+# # display
+# Figures can be explored *(zoom, shift, resize, etc)* with the jupyter tools displayed  below the dataset.
 #
-# - warning message in peak-picking
-# - DeltaM in peaklist
-# - calibration
-# - pp : sigma + %max
-
-# %% [markdown]
-# # Documentation
-
-# %% [markdown]
-# In the current set-up, the figure can be explored *(zoom, shift, resize, etc)* with the jupyter tools displayed  below the dataset.
-# The figure can also be saved as a `png` graphic file.
+# The drawing zone can be resized using the little grey triangle on the lower-right corner
 #
-# At anytime, the figure can be frozen by clicking on the blue button on the upper right corner, just rerun the cell for changing it.
+# Figures can also be saved as a `png` graphic file.
 
 # %% [markdown]
-# ### Choose the file
-# Use `FileChooser()` to choose a file on your disk - The optional `base` argument, starts the exploration on a given location.
+# # Standard processing:
+# ### Choose a file
+# Only files in the seafile deposit can be handled.
+# Use  the selector to choose an experiment. 
 #
-# Bruker files are named `fid` and are contained in a `*.d` directory.
-
-# %% [markdown]
-# ### Peak Detection
-# The following is used to perform an interactive peak picking, and output the result
-# Use the cursor to choose the sensitivity of the picker.
+# ### Load
+# The `Load` button will get the transient of the  selected experiment and display it.
+# Any previous processing will be lost
+#
+# ### Process
+# Will compute the Spectrum, according to the parameters define in the "Processing Parameters" pane
+#
+# ### Peak Pick
+# Will compute the Peak list, according to the parameters define in the "Processing Parameters" pane
+#
+# # Panes
+# - raw fid: the transient, if loaded
+# - spectrum: the processed spectrum, if computed
+# - Peak list: the peak list, if computed - can be exported in csv format
+# - Processing Parameters: all the parameters used for the processing: 
+# - Info: details on the experiment and Processing audit trails
 
 # %% [markdown]
 # ### Calibration
@@ -72,32 +77,30 @@ w = FI.IFTMS()
 # $$
 # f = \frac{A}{m/z} - B + \frac{C}{(m/z)^2}
 # $$
-# You can change them below:
+# where $A$ $B$ and $C$ are imported from the Bruker `ML1` `ML2` `ML3` parameters.
 #
-
-# %% [markdown]
-# ---
+# **Be carefull** Bruker uses a sign inversion on `ML2` depending on the value of `ML3` - this is not used, and the equation is allwas the same.
 #
-# ### Calibration on reference peaks
-# #### *To come soon !*
+# This set-up will be changed in the future for a more flexible and robust set-up
+
+# %% [markdown]
+# ## comments
 #
-
-# %% [markdown]
-# ### Save processed data
-# You can save a dataset, two formats are available:
+# This is a temporary version.
 #
-# - Native SPIKE format, `*.msh5` where all informations are stored - run the following cell
-
-# %% [markdown]
-# - Or `cvs` format, with only the spectrum (for the peak list, see above) - ( *be carefull this file can be very big*)
-
-# %% [markdown]
-# ### superimpose spectra
-# you can superimpose several spectra stored as `.msh5` files in order to compare them
-
-# %% [markdown]
-# *the following cell display the colormap used here*
+# Certain parts are still in dévelopment
+# - calibration
+# - more efficient peak-picking
+# - superimposition of spectra
+#
 
 # %%
+a_FAIRE = """
+to do:
+- export to mzml
+- peak list
+- superimposition
+- simple A B C calibration
+"""
 
 # %%

@@ -20,3 +20,11 @@
     - easydisplay2D.ipynb
 
 - Imagerie ????
+
+# bugs - à corriger
+- audit trail au bon endroit : `op.join( data.fullpath,'audittrail.txt')`
+
+
+```python
+
+```
