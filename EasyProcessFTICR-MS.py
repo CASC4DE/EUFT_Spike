@@ -23,13 +23,10 @@
 # %%capture
 
 # load all python and interactive tools
-from IPython.display import display, HTML, Markdown, Image
-#display(Markdown('## STARTING Environment...'))
 # %matplotlib widget
 # %xmode Plain
 # Plain or Minimal.
 import spike
-from spike.Interactive import INTER as I
 import Tools.FTICR_INTER as FI
 
 

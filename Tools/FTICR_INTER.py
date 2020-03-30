@@ -40,19 +40,22 @@ NbMaxDisplayPeaks = 200      # maximum number of peaks to display at once
 # TOOLS FOR 1D FTICR
 class FileChooser(VBox):
     """a simple chooser for Jupyter for selecting *.d directories"""
-    def __init__(self, base='DATA'):
+    def __init__(self, base='DATA', dotd=True, msh5=True):
         super().__init__()
-        filelistraw = [str(i.relative_to(base)) for i in Path(base).glob('**/*.d')]
-        filelistproc = [str(i.relative_to(base)) for i in Path(base).glob('**/*.msh5')]
-        flist = ['   --- raw ---']
-        flist += filelistraw
-        flist.append('   --- processed ---')
-        flist += filelistproc
+        flist = []
+        if dotd:
+            filelistraw = [str(i.relative_to(base)) for i in Path(base).glob('**/*.d')]
+            flist.append('   --- raw ---')
+            flist += filelistraw
+        if msh5:
+            filelistproc = [str(i.relative_to(base)) for i in Path(base).glob('**/*.msh5')]
+            flist.append('   --- processed ---')
+            flist += filelistproc
         self.selec = widgets.Select(options=flist,layout={'width': 'max-content'})
         self.children  = [widgets.HTML('<b>Choose one experiment</b>'), self.selec ]
 
 class Dataproc:
-    "a class to hold a data set and to process it"
+    "a class to hold a 1D data set and to process it"
     def __init__(self, data):
         self.data = data    # the fid
         self.DATA = None    # the spectrum
@@ -77,7 +80,7 @@ class Dataproc:
 
 class IFTMS(object):
     "a widget to set all 1D MS tools into one screen"
-    def __init__(self, show=True, base='FT-ICR'):
+    def __init__(self, show=True):
         # header
         #   filechooser
         self.base = BASE
@@ -108,7 +111,7 @@ class IFTMS(object):
         with self.header:
             self.waitarea = Output()
             self.buttonbar = HBox([self.bload, self.bproc, self.bpeak, self.bsave, self.waitarea])
-            display(Markdown('---\n# Select an experiment, and process'))
+            display(Markdown('---\n# Select an experiment, and load to process'))
             display(self.filechooser)
             display(self.buttonbar)
 
@@ -197,7 +200,6 @@ class IFTMS(object):
         "load 1D data-set and display"
         self.fid.clear_output(wait=True)
         if self.selected.endswith(".msh5"):
-            print("SPIKE")
             self.loadspike()
         else:
             self.loadbruker()

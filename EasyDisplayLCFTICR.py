@@ -20,19 +20,43 @@
 #
 
 # %%
-### Initialization of the environment
-### the following cell should be run only once *(but no harm if you run it twice)* .
-
-from IPython.display import display, HTML, Markdown, Image
-display(Markdown('## STARTING Environment...'))
+# %%capture
 # %matplotlib widget
+# %xmode Plain
 import spike
-from spike.Interactive.INTER import hidecode
-import LCFTICR_INTER as IF2
-display(Markdown('## ... program is ready'))
+import Tools.LCFTICR_INTER as LCI
+
+# %%
+from importlib import reload  # the two following lines are debugging help
+reload(LCI)                   # and can be removed safely when in production
+ms = LCI.MS2Dscene()
+
+# %%
+[d.absmax for d in ms.MR2D.data[::-1]]
+
+# %%
+import spike.FTICR as FTICR
+import spike.File.HDF5File as H5
+H5.HDF5File()
+
+# %%
+import tables
+fname = 'FTICR_DATA/LCMS-FTICRtest.msh5'
+hf = tables.open_file(fname,"r")
+for group in hf.iter_nodes("/","Group"):
+        print("GROUP",group._v_name)
+        if group._v_name.startswith('resol'):
+            axe = getattr(group,"axes")
+            display(axe)
+
+# %%
+hf.root.generic_table
+
+# %%
+STOP
 from importlib import reload  # the two following lines are debugging help
 reload(IF2)                   # and can be removed safely when in production
-ms = IF2.MS2Dscene(root='.')
+ms = IF2._MS2Dscene(root='/')
 
 # %% [markdown]
 # # TODO
@@ -62,45 +86,3 @@ ms = IF2.MS2Dscene(root='.')
 # - calibration
 # - peak detection
 #
-
-# %%
-for i,dl in enumerate( ms.MR2D.data):
-    print (dl.axis1.stoi(60))
-    print (dl.axis1.report())
-#ms.MR2D.min
-
-# %%
-mr = IF2.MR('./LCMS-FTICRtest.msh5')
-
-# %%
-mr.data[0].axis1.currentunit
-mr.data[0].axis1.ctoi(10.3)
-mr.data[0].axis1.Tmin
-
-# %%
-mr.data
-for i,dl in enumerate(mr.data):
-    mr.data[i].axis1 = TimeAxis(size=sizeF1, tabval=np.array(mr.min), importunit="min", currentunit='min' )  
-
-# %%
-1763//881
-
-# %%
-mr.data[6]
-
-# %%
-mr.data[7].axis1.currentunit = 'sec'
-
-# %%
-import matplotlib.pyplot as plt
-with ms.out2D:
-    plt.plot([1,2,3],[2,4,0])
-
-# %%
-with ms.out2D:
-    IF2.MR_interact(ms.FC.selected,  show=True, figsize=(8,8), Debug=False)
-
-# %%
-IF2.MR_interact(ms.FC.selected,  show=True, figsize=(8,8), Debug=False)
-
-# %%
