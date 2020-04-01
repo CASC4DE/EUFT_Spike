@@ -32,7 +32,8 @@ reload(LCI)                   # and can be removed safely when in production
 ms = LCI.MS2Dscene()
 
 # %%
-[d.absmax for d in ms.MR2D.data[::-1]]
+b = ms.MR2D.data[-3].get_buffer()[:,:]
+b.max()
 
 # %%
 import spike.FTICR as FTICR
@@ -86,3 +87,30 @@ ms = IF2._MS2Dscene(root='/')
 # - calibration
 # - peak detection
 #
+
+# %%
+dl = spike.FTICR.FTICRData(name='output.msh5', mode="onfile", group="resol5")
+dl.hdf5file.retrieve_object('maxvalues')
+
+# %%
+from spike.FTICR import FTICRData 
+import spike.File.HDF5File as H5
+hf = H5.HDF5File('output.msh5', access='r', debug=1,verbose=True)
+m = hf.retrieve_object('maxvalues')
+for i in range(len(m)-1):
+    print (m[i]/m[i+1])
+
+# %%
+d = FTICRData(name='FTICR_DATA/LCMS-FTICRtest.msh5',mode='onfile',group='resol6')
+d.absmax
+
+# %%
+import ImportLC
+ImportLC.comp_sizes(1763 , 4194304)
+
+# %%
+import numpy as np
+x = np.ones((10,20))
+x.max()
+
+# %%

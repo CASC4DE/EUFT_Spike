@@ -1,0 +1,95 @@
+{% extends "page.html" %}
+
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block stylesheets %}
+  {{ super() }}
+
+  <style>
+    .list-header {
+      width: 80%;
+      margin-top: 50px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 0px;
+      border: solid 1px grey;
+      border-bottom: none;
+      background-color: rgb(238, 238, 238)
+    }
+
+    .list-header-text {
+      padding: 10px
+    }
+
+    .voila-notebooks {
+      width: 80%;
+      margin: auto;
+      padding: 0px;
+      border: solid 1px grey;
+      border-radius: 0px 0px 3px 3px
+    }
+
+    .voila-notebooks > li {
+      list-style: none;
+      border-bottom: 1px solid grey;
+      padding: 10px 0px
+    }
+
+    .voila-notebooks > li:hover {
+      background-color: #fafafa;
+    }
+
+    .voila-notebooks > li:last-child {
+      border: none
+    }
+    a {
+      color: rgb(17,83,155);
+    }
+    .voila-notebooks > li > a > i {
+      padding: 0 10px
+    }
+    #logos{display: flex;justify-content: space-between;}
+    #logoC4 {max-height: 40px;}
+    #logoEU {max-height: 40px;}
+    body {font-family: sans-serif;}
+    h1 {text-align: center;}
+    h2 {text-align: center;}
+
+  </style>
+{% endblock %}
+
+{% block body %}
+<div id="logos">
+  <a href="http://www.casc4de.eu"><img id='logoC4' src="{{base_url}}voila/static/casc4de_logo_header.png" alt="Logo casc4de"></a>
+  <h2>An environment to process, analyze and display FTICR-MS data</h2>
+  <a href="http://www.eu-fticr-ms.eu/"><img id='logoEU' src="{{base_url}}voila/static/logo_EU.png" alt="Logo EU-FTICR-MS"></a>
+</div>
+  <div class="list-header">
+      <div class="list-header-text">
+          <b>Select tool to open.</b>
+      </div>
+  </div>
+
+  <ul class="voila-notebooks">
+    {% if breadcrumbs|length > 1: %}
+      <li><a href="{{ breadcrumbs[-2][0] }}"><i class="fa fa-folder"></i>..</a></li>
+    {% endif %}
+
+    {% for content in contents.content %}
+      {% if content.type in ['notebook', 'file'] %}
+        <li><a href="{{ base_url }}voila/render/{{ content.path }}"><i class="fa fa-book"></i>{{content.name}}</a>
+        {% if 'LC' in content.name %} &nbsp;  &nbsp; for LC-MS experiments
+        {% elif 'Process' in content.name %}  &nbsp; for simple MS experiments
+        {% endif %}
+      </li>
+      {% endif %}
+<!--       {% if content.type == 'directory' %}
+        {% if content.name == 'FTICR_DATA' %}
+          <li><a href="{{ base_url }}voila/tree/{{ content.path }}"><i class="fa fa-folder"></i>{{content.name}}</a>&nbsp; &nbsp; &nbsp; Explore your data-sets</li>
+        {% endif %}
+      {% endif %}
+ -->
+     {% endfor %}
+  </ul>
+{% endblock %}

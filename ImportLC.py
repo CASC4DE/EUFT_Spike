@@ -121,11 +121,12 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, downsa
         HF.store_internal_file( locate_ExciteSweep(folder) )
     except:
         print('ExciteSweep file not stored')
-    data.hdf5file = HF
-    # I need a link back to the file in order to close it 
-    print(type(data.buffer))
+    data.hdf5file = HF    # I need a link back to the file in order to close it 
+
+    # Start processing - first computes sizes and sub-datasets
     print(data)
     datalist = []   # remembers all downsampled dataset
+    maxvalues = [0.0]  # remembers max values in all datasets - main and downloaded
     if downsample:
         allsizes = comp_sizes(data.size1, data.size2)
         for i, (si1,si2) in enumerate(allsizes):
@@ -134,7 +135,10 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, downsa
             datai.axis1.size = si1
             datai.axis2.size = si2
             HF.create_from_template(datai, group='resol%d'%(i+2))
-            datalist.append(datai)           
+            datalist.append(datai)
+            maxvalues.append(0.0)
+
+    # Then go through input file
     if sys.maxsize  == 2**31-1:   # the flag used by array depends on architecture - here on 32bit
         flag = 'l'              # Apex files are in int32
     else:                       # here in 64bit
@@ -148,6 +152,7 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, downsa
         szpacket = 10
         packet = np.zeros((szpacket,sizeF2))   # store by packet to increase compression speed
         for i1 in range(sizeF1):
+            absmax = 0.0
             #print(i1, ipacket, end='  ')
             tbuf = f.read(4*sizeF2)
             if len(tbuf) != 4*sizeF2:
@@ -162,13 +167,14 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, downsa
             spectre.zeroing(sigma*3).eroding()
             packet[ipacket,:] = spectre.buffer[:]  # store into packet
             if (ipacket+1)%szpacket == 0:          # and dump every szpacket
-                data.buffer[i1-(szpacket-1):i1+1,:] = packet[:,:]
+                maxvalues[0] = max( maxvalues[0], abs(packet.max()) )   # compute max
+                data.buffer[i1-(szpacket-1):i1+1,:] = packet[:,:]  # and copy
                 packet[:,:] = 0.0
                 ipacket = 0
             else:
                 ipacket += 1
             # now downsample
-            for datai in datalist:
+            for idt, datai in enumerate(datalist):
                 if i1%(sizeF1//datai.size1) == 0:   # modulo the size ratio
                     ii1 = (i1*datai.size1) // sizeF1
                     spectre.set_buffer(abuf)
@@ -177,10 +183,14 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, downsa
                     mu, sigma = spectre.robust_stats(iterations=5)
                     spectre.buffer -= mu
                     spectre.zeroing(sigma*3).eroding()
+                    maxvalues[idt+1] = max( maxvalues[idt+1], spectre.absmax )   # compute max (0 is full spectrum)
                     datai.buffer[ii1,:] = spectre.buffer[:]
+
             pbar.update(i1)
         # flush the remaining packet
+        maxvalues[0] = max( maxvalues[0], abs(packet[:ipacket,:].max()) )
         data.buffer[i1-ipacket:i1,:] = packet[:ipacket,:]
+    HF.store_internal_object(maxvalues, h5name='maxvalues')    # store maxvalues in the file
     pbar.finish()
     HF.flush()
     return data
@@ -226,7 +236,7 @@ def main():
     t0 = time.time()
     d = Import_and_Process_LC(infilename, outfile=outputfile, compress=compression, downsample=downSampling)
     elaps = time.time()-t0
-    print('Processing took ',elaps/60," minutes")
+    print('Processing took %.2f minutes'%(elaps/60))
 
 if __name__ == '__main__':
     sys.exit(main())

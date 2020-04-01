@@ -46,11 +46,9 @@ class MR(object):
         self.SIZEMAX = SIZEMAX
         self.name = name
         self.data = []                   # will contain all resolutions
-        self.absmax = 0.0                # will accumulates global absmax
         self.min, self.tic, self.mxpk = self.readScanXML()
         self.load()
-        if self.absmax == 0.0:
-            self.compute_absmax()
+        self.compute_absmax()
         self.axis1 = self.data[0].axis1
         self.axis2 = self.data[0].axis2
 #        self.col0 = self.data[0].col
@@ -148,7 +146,7 @@ class MR(object):
             z1lo, z1up, z2lo, z2up = parsezoom(dl,(z11,z22,z33,z44))
             sz = (z1lo-z1up)* (z2lo-z2up)
             if sz < self.SIZEMAX:
-                print (reso, dl.size1,dl.size2, z1lo, z1up, z2lo, z2up, sz)
+                if verbose: print (reso, dl.size1,dl.size2, z1lo, z1up, z2lo, z2up, sz)
                 break
         zooml = (dl.axis1.itom(z1lo), dl.axis1.itom(z1up), dl.axis2.itomz(z2lo), dl.axis2.itomz(z2up))
         if verbose or self.Debug:
@@ -157,10 +155,22 @@ class MR(object):
         return dl, zooml
     def compute_absmax(self):
         "computes largest point from smaller resolution, and propagates"
-        dsmall = self.data[-1]
-        self.absmax = dsmall.absmax
-        for dl in self.data:
-            dl._absmax = self.absmax        
+
+        hf = self.data[0]
+        try:
+            maxvalues = hf.hdf5file.retrieve_object('maxvalues')
+        except:
+            maxvalues = None 
+        if maxvalues is None:
+            dsmall = self.data[-1]
+            self.absmax = dsmall.absmax
+            a = dsmall.absmax
+            for dl in self.data[::-1]:
+                dl._absmax = a
+                a *= 4
+        else:
+            for i, m in enumerate(maxvalues):
+                self.data[i]._absmax = m
 
 class MR_interact(MR):
     def __init__(self, name, figsize=(15,6), report=True, show=True, Debug=False):
@@ -219,13 +229,13 @@ class MR_interact(MR):
         return innerbox
     def spec_box(self):
         "defines the spectral box widget"
-        self.scale = widgets.FloatLogSlider(description='scale:', value=0.2, min=-1, max=3, step=0.1,
+        self.scale = widgets.FloatLogSlider(description='scale:', value=1.0, min=-1, max=3, step=0.1,
                     tooltip='Set display scale', layout=Layout(height='400px'), continuous_update=HEAVY,
                     orientation='vertical')
         self.scale.observe(self.ob)
         self.bb('b_redraw', 'Redraw', lambda e : self.display(),
             layout=Layout(width='100px'))
-        box = VBox([self.b_reset, self.scale, self.b_redraw], layout=Layout(min_width='100px'))
+        box = VBox([self.b_reset, self.scale, self.b_redraw], layout=Layout(min_width='105px'))
         return HBox([box, self.pltfig.canvas])
     def scale_up(self, step):
         self.scale.value *= 1.1892**step # 1.1892 is 4th root of 2.0
@@ -254,7 +264,7 @@ class MR_interact(MR):
         self.check_fig()  # insure figure is there
 #        with self.out:
         self.pltaxe.clear() # clear 
-        datasel.display(zoom=zz, scale=self.scale.value, absmax=self.absmax, 
+        datasel.display(zoom=zz, scale=self.scale.value, 
             xlabel='m/z', ylabel='time '+self.data[0].axis1.currentunit,
             show=False, figure=self.pltaxe)
         self.pltaxe.text(corner,zz[1], "D#%d R: %.0f"%(self.data.index(datasel)+1, reso))
@@ -275,22 +285,26 @@ class MR_interact(MR):
         "update internal zoom coordinates"
 #        self.track.append((self._zoom, self.scale))
 #        self.point = -1 # means last
-        #print('update')
+        import time
         xb = self.pltaxe.get_xbound()
         yb = self.pltaxe.get_ybound()
-        #print( xb, yb)
         self.z1l.value = yb[0]
         self.z1h.value = yb[1]
         self.z2l.value = xb[0]
         self.z2h.value = xb[1]
+#        time.sleep(1.2)
+        self.display()
     def set_on_redraw(self):
         def on_press(event):
             print('you pressed', event.button, event.xdata, event.ydata)
+        def on_release(event):
+            print('you released', event.button, event.xdata, event.ydata)
         def on_scroll(event):
             self.scale_up(event.step)
         cidd = self.pltfig.canvas.mpl_connect('draw_event', self.update)
 #        cids = self.pltfig.canvas.mpl_connect('scroll_event', on_scroll)
-#        cidc = self.pltfig.canvas.mpl_connect('button_press_event', on_press)
+#        cidp = self.pltfig.canvas.mpl_connect('button_press_event', on_press)
+#        cidr = self.pltfig.canvas.mpl_connect('button_release_event', on_release)
     def reset(self, b):
         self.scale.value = 1.0
         self.fullzoom()
