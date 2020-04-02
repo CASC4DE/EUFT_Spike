@@ -31,12 +31,15 @@ a.anchor-link {
 }
 
     #logos{display: flex;justify-content: space-between;}
-    #logoC4 {max-height: 30px;}
-    #logoEU {max-height: 30px;}
+    #logoC4 {max-height: 40px;display: flex;justify-content: space-between;}
+    #logoEU {max-height: 40px;}
     body {font-family: sans-serif;}
     h1 {text-align: center;}
     h2 {text-align: center;}
-    h3 {text-align: center;}
+    #logoC4>a{max-height: 40px;}
+    #logoC4>p{font-style: italic;text-align: right;padding-right: 2px;}
+    #logoC4>a>img{max-height: 40px;}
+
 
 </style>
 
@@ -53,10 +56,14 @@ a.anchor-link {
 {% endif %}
 
 <div id="logos">
-  <a href="http://www.casc4de.eu"><img id='logoC4' src="{{resources.base_url}}voila/static/casc4de_logo_header.png" alt="Logo casc4de"></a>
-  <h3>FTICR-MS data</h3>
   <a href="http://www.eu-fticr-ms.eu/"><img id='logoEU' src="{{resources.base_url}}voila/static/logo_EU.png" alt="Logo EU-FTICR-MS"></a>
+  <h2>An environment to process, analyze and display FTICR-MS data</h2>
+  <div id='logoC4' >
+    <p>brought to you by:</p>
+    <a href="http://www.casc4de.eu"><img src="{{resources.base_url}}voila/static/casc4de_logo_header.png" alt="Logo casc4de"></a>
+  </div>
 </div>
+
 
 
 {{ spinner.html() }}
