@@ -24,7 +24,23 @@
 # %matplotlib widget
 # %xmode Plain
 import spike
+
+# %%
 import Tools.LCFTICR_INTER as LCI
+
+# %%
+# improve display
+from IPython.display import display, HTML, Javascript, Markdown
+from ipywidgets import interact, fixed, HBox, VBox, GridBox, Label, Layout, Output, Button
+import ipywidgets as widgets
+
+display(HTML('<style>hr {height: 2px; border: 0;border-top: 1px solid #ccc;margin: 1em 0;padding: 0; }</style>'))
+def dodoc(md):
+    out = Output()
+    with out:
+        display(Markdown(md))
+    return out
+
 
 # %%
 from importlib import reload  # the two following lines are debugging help
@@ -32,85 +48,97 @@ reload(LCI)                   # and can be removed safely when in production
 ms = LCI.MS2Dscene()
 
 # %%
-b = ms.MR2D.data[-3].get_buffer()[:,:]
-b.max()
+doc = dodoc('''# DOCUMENTATION
+
+## display
+Figures can be explored *(zoom, shift, resize, etc)* with the jupyter tools displayed  below the dataset.
+
+The drawing zone can be resized using the little grey triangle on the lower-right corner
+
+Figures can also be saved as a `png` graphic file.
+
+## Standard handling:
+#### Choose a file
+LC-MS raw data are stored in the `ser` file in Bruker directories.
+They have to be processed before being visualized with this utility.
+The processing  is performed in background on the deposit system, expect a few hors for the processing to be performed.
+The result of the processing is stored in a `*.msh5` file file the same filename than the bruker directory.
+Only files in the seafile deposit can be handled.
+
+Use  the selector to choose a `msh5` file to display. 
+
+#### Load
+The `Load` button will get the processed experiment and display it.
+
+#### Peak Pick
+Will compute the Peak list, according to the parameters define in the "Processing Parameters" pane
+
+## Panes
+- 1D Display: Extract of the experiment can be displayed here, 
+    - MS spectra at a given retention time
+    - chromatogram at a given $m/z$
+- 2D spectrum: A 2D display of the LC-MS experiment,  
+- Peak list: the peak list, if computed - can be exported in csv format
+- Processing Parameters: all the parameters used for the processing: 
+- Info: details on the experiment
+
+## Calibration
+The calibration used by SPIKE is based on a 2 or 3 parameters equation :
+$$
+f = \frac{A}{m/z} - B + \frac{C}{(m/z)^2}
+$$
+where $A$ $B$ and $C$ are imported from the Bruker `ML1` `ML2` `ML3` parameters.
+
+**Be carefull** Bruker uses a sign inversion on `ML2` depending on the value of `ML3` - this is not used, and the equation is allwas the same.
+
+This set-up will be changed in the future for a more flexible and robust set-up
+''')
+
+comment = dodoc('''## *comments*
+
+This is a temporary version.
+
+expect improvements, as certain parts are still in development
+- $m/z$ calibration
+- more efficient peak-picking
+- export to mzml
+- ...
+''')
+
+accordion = widgets.Accordion(children=[doc, comment])
+accordion.set_title(0,'Documentation')
+accordion.set_title(1,'Comments')
+accordion.selected_index = None
+accordion
 
 # %%
-import spike.FTICR as FTICR
-import spike.File.HDF5File as H5
-H5.HDF5File()
+todo = '''# TODO
+### importer
+- 
 
-# %%
-import tables
-fname = 'FTICR_DATA/LCMS-FTICRtest.msh5'
-hf = tables.open_file(fname,"r")
-for group in hf.iter_nodes("/","Group"):
-        print("GROUP",group._v_name)
-        if group._v_name.startswith('resol'):
-            axe = getattr(group,"axes")
-            display(axe)
+### to come
+- changer le selecteur
+- mise à jour de la boite de zoom (easyDisplay2D)
+- changer l'affichage
+    - composite avec projection des axes (Proc2DNMR)
+    - projection spectre MS ? (calculée en amont)
+    - LC horiz ?
+    - 3D ?
+- extraction of 1D 
+    - Tic
+    - Pmax
+    - 2 onglets 1D
+        - à une masse donnée  ou un intervalle => chromatogramme
+        - à un temps donné - ou un intervalle de temps => spectre masse
+    - multimanipe
+    - affichage courge / zones colorées
 
-# %%
-hf.root.generic_table
+https://mzmine.github.io/
 
-# %%
-STOP
-from importlib import reload  # the two following lines are debugging help
-reload(IF2)                   # and can be removed safely when in production
-ms = IF2._MS2Dscene(root='/')
+### pour bientôt
+- calibration
+- peak detection
+'''
 
-# %% [markdown]
-# # TODO
-# ### importer
-# - 
-#
-# ### to come
-# - changer le selecteur
-# - mise à jour de la boite de zoom (easyDisplay2D)
-# - changer l'affichage
-#     - composite avec projection des axes (Proc2DNMR)
-#     - projection spectre MS ? (calculée en amont)
-#     - LC horiz ?
-#     - 3D ?
-# - extraction of 1D 
-#     - Tic
-#     - Pmax
-#     - 2 onglets 1D
-#         - à une masse donnée  ou un intervalle => chromatogramme
-#         - à un temps donné - ou un intervalle de temps => spectre masse
-#     - multimanipe
-#     - affichage courge / zones colorées
-#
-# https://mzmine.github.io/
-#
-# ### pour bientôt
-# - calibration
-# - peak detection
-#
-
-# %%
-dl = spike.FTICR.FTICRData(name='output.msh5', mode="onfile", group="resol5")
-dl.hdf5file.retrieve_object('maxvalues')
-
-# %%
-from spike.FTICR import FTICRData 
-import spike.File.HDF5File as H5
-hf = H5.HDF5File('output.msh5', access='r', debug=1,verbose=True)
-m = hf.retrieve_object('maxvalues')
-for i in range(len(m)-1):
-    print (m[i]/m[i+1])
-
-# %%
-d = FTICRData(name='FTICR_DATA/LCMS-FTICRtest.msh5',mode='onfile',group='resol6')
-d.absmax
-
-# %%
-import ImportLC
-ImportLC.comp_sizes(1763 , 4194304)
-
-# %%
-import numpy as np
-x = np.ones((10,20))
-x.max()
 
 # %%
