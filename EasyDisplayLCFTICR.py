@@ -53,6 +53,7 @@ doc = dodoc('''# DOCUMENTATION
 ## display
 Figures can be explored *(zoom, shift, resize, etc)* with the jupyter tools displayed  below the dataset.
 
+
 The drawing zone can be resized using the little grey triangle on the lower-right corner
 
 Figures can also be saved as a `png` graphic file.
@@ -77,7 +78,10 @@ Will compute the Peak list, according to the parameters define in the "Processin
 - 1D Display: Extract of the experiment can be displayed here, 
     - MS spectra at a given retention time
     - chromatogram at a given $m/z$
-- 2D spectrum: A 2D display of the LC-MS experiment,  
+- 2D spectrum: A 2D display of the LC-MS experiment,
+    - To speed-up the display, a low resolution of the spectrum is displayed
+      when a large zone of the experiment is displayed.
+    - resolution is udapted after zooming-in
 - Peak list: the peak list, if computed - can be exported in csv format
 - Processing Parameters: all the parameters used for the processing: 
 - Info: details on the experiment
@@ -140,5 +144,3 @@ https://mzmine.github.io/
 - peak detection
 '''
 
-
-# %%

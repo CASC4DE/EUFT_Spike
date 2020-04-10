@@ -323,10 +323,12 @@ class IFTMS(object):
                 self.waitarea.clear_output(wait=True)
             return
         self.wait()
+        self.peaklist.clear_output(wait=True)
         self.datap.peakpick()
         with self.out1D:
             self.datap.DATA.display_peaks(peak_label=True ,NbMaxPeaks=self.MAX_DISP_PEAKS)
         with self.peaklist:
+            display( Markdown('%d Peaks detected'%len(self.datap.DATA.peaks)) )
             display(HTML(self.datap.DATA.pk2pandas().to_html()))
         self.showinfo()
         self.tabs.selected_index = 2
@@ -363,7 +365,7 @@ class IFTMS(object):
 
         chld.append( widgets.RadioButtons(options=['Yes','No'],value='Yes',description='centroid',layout=ly, style=style))
 
-        chld.append( widgets.IntSlider(value=self.MAX_DISP_PEAKS,min=10,max=10000,description='max peak displayed', layout=ly, style=style) )
+        chld.append( widgets.IntText(value=self.MAX_DISP_PEAKS,min=10,max=10000,description='max peak displayed', layout=ly, style=style) )
 
 
         self.form = widgets.VBox(chld)
@@ -434,197 +436,6 @@ class IFTMS(object):
             val[k] = vb.value
         return val
 
-
-# ##################### 1D ##################
-    def I1D(self):
-        "show the 1D selector"
-        self.r1D = None
-        self.t1D = ''
-        self.i1D = None
-        self.check_fig1D()
-        display(self.ext_box())
-
-    def check_fig1D(self):
-        if self.pltaxe1D is None:
-            fg,ax = plt.subplots(figsize=(1.5*self.figsize[0], 0.75*self.figsize[0]))
-            ax.text(0.1, 0.8, 'Empty - use "horiz" and "vert" buttons above')
-            self.pltaxe1D = ax
-            self.fig1D = fg
-
-    def ext_box(self):
-        "defines the interactive tools for 1D"
-        wf = widgets.BoundedFloatText
-        wi = widgets.BoundedIntText
-        ref = self.data[0]
-        style = {'description_width': 'initial'}
-        lay = Layout(width='120px', height='30px')
-        lay2 = Layout(width='50px', height='30px')
-        self.z1 = wf( value=300.0, min=ref.axis1.lowmass, max=ref.highmass[0], description='F1', style=style, layout=lay)
-        self.z2 = wf( value=300.0,  min=ref.axis2.lowmass, max=ref.highmass[1], description='F2', style=style, layout=lay)
-        self.horiz = wi( value=1, min=1, max=20, style=style, layout=lay2)
-        self.vert = wi( value=1, min=1, max=20, style=style, description="/", layout=lay2)
-        def lrow(b, inc=0):
-            rint = int(round(ref.axis1.mztoi(self.z1.value)))
-            if inc !=0:
-                rint += inc
-            self.z1.value = ref.axis1.itomz(rint)
-            if self.t1D == 'col':
-                self.pltaxe1D.clear()
-                self.r1D = None
-            if self.b_accu.value == 'sum' and self.r1D is not None:
-                self.r1D += ref.row(rint)
-            else:
-                self.r1D = ref.row(rint)
-            self.t1D = 'row'
-            self.i1D = rint
-            self.display1D()
-        def lrowp1(b):
-            lrow(b,-1)
-        def lrowm1(b):
-            lrow(b,1)
-        def lcol(b, inc=0):
-            rint = int(round(ref.axis2.mztoi(self.z2.value)))
-            if inc !=0:
-                rint += inc
-            self.z2.value = ref.axis2.itomz(rint)
-            if self.t1D == 'row':
-                self.pltaxe1D.clear()
-                self.r1D = None
-            if self.b_accu.value == 'sum' and self.r1D is not None:
-                self.r1D += ref.col(rint)
-            else:
-                self.r1D = ref.col(rint)
-            self.t1D = 'col'
-            self.i1D = rint
-            self.display1D()
-        def lcolp1(b):
-            lcol(b,-1)
-        def lcolm1(b):
-            lcol(b,1)
-        def on_press(event):
-            v = self.r1D.axis1.mztoi(event.xdata)
-            if self.t1D == 'col':
-                self.z1.value = v
-            elif self.t1D == 'row':
-                self.z2.value = v
-        cids = self.fig1D.canvas.mpl_connect('button_press_event', on_press)
-
-        self.bb('b_row', 'horiz', lrow, layout=Layout(width='60px'), tooltip='extract an horizontal row')
-        self.bb('b_rowp1', '+1', lrowp1, layout=Layout(width='30px'), tooltip='next row up')
-        self.bb('b_rowm1', '-1', lrowm1, layout=Layout(width='30px'), tooltip='next row down')
-        self.bb('b_col', 'vert', lcol, layout=Layout(width='60px'), tooltip='extract a vertical col')
-        self.bb('b_colp1', '+1', lcolp1, layout=Layout(width='30px'), tooltip='next col right')
-        self.bb('b_colm1', '-1', lcolm1, layout=Layout(width='30px'), tooltip='next col left')
-        self.b_accu = widgets.Dropdown(options=['off', 'graphic', 'sum'],
-                value='off', description='Accumulate plots while scanning:', style=style)
-        return VBox([ widgets.HTML('<h3>Extract 1D MS Spectrum going through given F1-F2 coordinates</h3>'),
-                    HBox([widgets.HTML("<B>coord:</B>"),self.z1,
-                          self.b_row, self.b_rowp1, self.b_rowm1, self.b_accu]),
-                    HBox([widgets.HTML("<B>coord:</B>"),self.z2,
-                          self.b_col, self.b_colp1, self.b_colm1])])
-    def display1D(self):
-        "display the selected 1D"
-        if self.t1D == 'row':
-            title = 'horizontal extract at F1=%f m/z (index %d)'%(self.z1.value, self.i1D)
-            label = str(self.z1.value)
-        elif self.t1D == 'col':
-            title = 'vertical extract at F2=%f m/z (index %d)'%(self.z2.value, self.i1D)
-            label = str(self.z2.value)
-        if self.b_accu.value != 'graphic':
-            self.pltaxe1D.clear()
-            label = None
-        self.r1D.display(xlabel='m/z', show=False, figure=self.pltaxe1D, new_fig=False, label=label, title=title)
-
-
-class MSPeaker(object):
-    "a peak-picker for MS experiments"
-    def __init__(self, npkd, pkname):
-        if not isinstance(npkd, FTMSData):
-            raise Exception('This modules requires a FTMS Dataset')
-        self.npkd = npkd
-        self.pkname = pkname
-        self.zoom = widgets.FloatRangeSlider(value=[npkd.axis1.lowmass, npkd.axis1.highmass],
-            min=npkd.axis1.lowmass, max=npkd.axis1.highmass, step=0.1,
-            layout=Layout(width='100%'), description='zoom',
-            continuous_update=False, readout=True, readout_format='.1f',)
-        self.zoom.observe(self.display)
-        self.tlabel = Label('threshold (x noise level):')
-        self.thresh = widgets.FloatLogSlider(value=20.0,
-            min=np.log10(1), max=2.0, base=10, step=0.01, layout=Layout(width='30%'),
-            continuous_update=False, readout=True, readout_format='.1f')
-        self.thresh.observe(self.pickpeak)
-        self.peak_mode = widgets.Dropdown(options=['marker', 'bar'],value='marker',description='show as')
-        self.peak_mode.observe(self.display)
-        self.bexport = widgets.Button(description="Export",layout=Layout(width='7%'),
-                button_style='success', # 'success', 'info', 'warning', 'danger' or ''
-                tooltip='Export to csv file')
-        self.bexport.on_click(self.pkexport)
-        self.bprint = widgets.Button(description="Print", layout=Layout(width='7%'),
-                button_style='success', tooltip='Print to screen')
-        self.bprint.on_click(self.pkprint)
-        self.bdone = widgets.Button(description="Done", layout=Layout(width='7%'),
-                button_style='warning', tooltip='Fix results')
-        self.bdone.on_click(self.done)
-        #self.spec = Output(layout={'border': '1px solid black'})
-        self.out = Output(layout={'border': '1px solid red'})
-        display( VBox([self.zoom,
-                      HBox([self.tlabel, self.thresh, self.peak_mode, self.bprint, self.bexport, self.bdone])
-                      ]) )
-        self.fig, self.ax = plt.subplots()
-        self.npkd.set_unit('m/z').peakpick(autothresh=self.thresh.value, verbose=False, zoom=self.zoom.value).centroid()
-        self.display()
-        display(self.out)
-
-    def pkprint(self,event):
-        self.out.clear_output(wait=True)
-        with self.out:
-            display(HTML(self.npkd.pk2pandas().to_html()))
-            #print(self.pklist())
-    def pkexport(self,event):
-        "exports the peaklist to file"
-        with open(self.pkname,'w') as FPK:
-            print(self.pklist(),file=FPK)
-        print('Peak list stored in ',self.pkname)
-    def pklist(self):
-        "creates peaklist"
-        text = ["m/z\t\tInt.(%)\tR\tarea(a.u.)"]
-        data = self.npkd
-        intmax = max(data.peaks.intens)/100
-        for pk in data.peaks:
-            mz = data.axis1.itomz(pk.pos)
-            Dm = 0.5*(data.axis1.itomz(pk.pos-pk.width) - data.axis1.itomz(pk.pos+pk.width))
-            area = pk.intens*Dm
-            l = "%.6f\t%.1f\t%.0f\t%.0f"%(mz, pk.intens/intmax, round(mz/Dm,-3), area)
-            text.append(l)
-        return "\n".join(text)
-    def display(self, event={'name':'value'}):
-        "display spectrum and peaks"
-        if event['name']=='value':  # event is passed by GUI - make it optionnal
-            self.ax.clear()
-            self.npkd.display(new_fig=False, figure=self.ax, zoom=self.zoom.value)
-            try:
-                self.npkd.display_peaks(peak_label=True, peak_mode=self.peak_mode.value, figure=self.ax, zoom=self.zoom.value, NbMaxPeaks=NbMaxDisplayPeaks)
-                x = self.zoom.value
-                y = [self.npkd.peaks.threshold]*2
-                self.ax.plot(x,y,':r')
-                self.ax.annotate('%d peaks detected'%len(self.npkd.peaks) ,(0.05,0.95), xycoords='figure fraction')
-            except:
-                pass
-    def pickpeak(self, event):
-        "interactive wrapper to peakpick"
-        if event['name']=='value':
-            self.pp()
-    def pp(self):
-        "do the peak-picking calling pp().centroid()"
-        #self.spec.clear_output(wait=True)
-        self.npkd.set_unit('m/z').peakpick(autothresh=self.thresh.value, verbose=False, zoom=self.zoom.value).centroid()
-        self.display()
-    def done(self, event):
-        "exit GUI"
-        for w in [self.zoom, self.thresh, self.peak_mode, self.bprint, self.bexport, self.bdone]:
-            w.close()
-        self.tlabel.value = "threshold %.2f noise level"%self.thresh.value
-#        self.display()
 
 class Calib(object):
     "a simple tool to show and modify calibration cste"

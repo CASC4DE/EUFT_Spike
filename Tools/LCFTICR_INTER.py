@@ -237,8 +237,8 @@ class MR_interact(MR):
             layout=Layout(width='100px'))
         box = VBox([self.b_reset, self.scale, self.b_redraw], layout=Layout(min_width='105px'))
         return HBox([box, self.pltfig.canvas])
-    def scale_up(self, step):
-        self.scale.value *= 1.1892**step # 1.1892 is 4th root of 2.0
+    # def scale_up(self, step):
+    #     self.scale.value *= 1.1892**step # 1.1892 is 4th root of 2.0
     def show(self):
         "actually show the graphical tool and the interactive spectrum"
         display(self.box)
@@ -292,15 +292,15 @@ class MR_interact(MR):
         self.z1h.value = yb[1]
         self.z2l.value = xb[0]
         self.z2h.value = xb[1]
-#        time.sleep(1.2)
         self.display()
+        time.sleep(0.2)
     def set_on_redraw(self):
         def on_press(event):
             print('you pressed', event.button, event.xdata, event.ydata)
         def on_release(event):
             print('you released', event.button, event.xdata, event.ydata)
-        def on_scroll(event):
-            self.scale_up(event.step)
+        # def on_scroll(event):
+        #     self.scale_up(event.step)
         cidd = self.pltfig.canvas.mpl_connect('draw_event', self.update)
 #        cids = self.pltfig.canvas.mpl_connect('scroll_event', on_scroll)
 #        cidp = self.pltfig.canvas.mpl_connect('button_press_event', on_press)
@@ -438,6 +438,139 @@ class MR_interact(MR):
             label = None
         self.r1D.display(show=False, figure=self.pltaxe1D, new_fig=False, label=label, title=title)
 
+
+class LC1D(VBox):
+    """
+    Define a tool to explore slices extracted from a LC-MS experiment
+    """
+    def __init__(self, MRdata=None):
+        "MRData should be a MR() object"
+        super(self.__class__, self).__init__()
+        # initialize data
+        self.MR = MRdata
+        self.data = MRdata.data[4]
+        self.sizeLC = self.data.size1
+        self.sizeMS = self.data.size2
+        self.LC = self.data.col(0)
+        self.MS = self.data.row(0)
+
+        # then graphic
+        self.fig = None
+        self.ax = None
+        self.box = self.buildbox()
+        self.spectral_zone = Output()
+        with self.spectral_zone:
+            self.fig, self.ax = plt.subplots(figsize=(15,3))
+            self.show()
+
+    def bb(self, name, desc, action, layout=None, tooltip="", button_style='success'):
+        "build a button into self"
+        if layout is None: layout = self.vlayout
+        butt = widgets.Button(description=desc, layout=layout, tooltip=tooltip, button_style=button_style)
+        butt.on_click(action)
+        setattr(self, name, butt)
+    def buildbox(self):
+        "builds the actions box"
+        dstyle = {'description_width': 'initial'}
+        # LC
+        self.bb('bMS', 'Spect.', self.computeMS,
+            layout=Layout(flex='1'))
+        LCstep = self.LC.axis1.itom(1) - self.LC.axis1.itom(0)
+        self.LCpos = widgets.FloatSlider(value=0.1, step=LCstep, min=self.LC.axis1.Tmin/60, max=self.LC.axis1.Tmax/60,
+            description='@ min.',style=dstyle,
+            layout=Layout(flex='4'))
+        self.LCspread = widgets.FloatSlider(min=LCstep, max=5.0, step=LCstep,
+            description='±', style=dstyle,
+            layout=Layout(flex='2'))
+#        self.smooth = widgets.ToggleButton(value=False)
+        self.smooth = widgets.Dropdown(options=['Yes','No'],value='No',
+            description='smoothing:',
+            layout=Layout(flex='1'))
+        self.SMstrength = widgets.IntSlider(value=5, min=1, max=10,disabled=True,
+            layout=Layout(flex='2'))
+        def on_sm_change(e):
+            if self.smooth.value == 'No':
+                self.SMstrength.disabled = True
+            else:
+                self.SMstrength.disabled = False
+        self.smooth.observe(on_sm_change)
+        # MS
+        self.bb('bLC', 'Chrom.', self.computeLC,
+            layout=Layout(flex='1'))
+        self.MSpos = widgets.FloatSlider(value=200.0, step=0.01,
+            min=self.MS.axis1.lowmass, max=self.MS.axis1.highmass,
+            description='@ m/z', style=dstyle,
+            layout=Layout(flex='4'))
+        self.MSspread = widgets.FloatLogSlider(value=0.01, min=-3, max=0,
+            description='±',style=dstyle,
+            layout=Layout(flex='2'))
+
+        info1 = widgets.HTML('<center>Action</center>', layout=Layout(flex='1'))
+        info2 = widgets.HTML('<center>Coordinates</center>', layout=Layout(flex='4'))
+        info3 = widgets.HTML('<center>Width</center>', layout=Layout(flex='2'))
+        info4 = widgets.HTML('<center>Smoothing the chromatogram</center>', layout=Layout(flex='3'))
+        space1 = widgets.HTML('&nbsp;', layout=Layout(flex='3'))
+        return VBox([   HBox([info1, info2, info3, info4],
+                                layout=Layout(justify_content="space-around")),
+                        HBox([self.bMS, self.LCpos, self.LCspread, self.smooth, self.SMstrength]),
+                        HBox([self.bLC, self.MSpos, self.MSspread],layout=Layout(width='70%'))],
+                    layout=Layout(width='100%',border='solid 2px',))
+
+    def computeLC(self,e):
+        "compute LC profile from values"
+        start = self.MSpos.value - self.MSspread.value/2
+        end = self.MSpos.value + self.MSspread.value/2
+        istart = int( self.MS.axis1.mztoi( end ) )
+        iend =  int( self.MS.axis1.mztoi( start ) )
+        lc = self.data.col(istart)
+        if iend>istart:
+            for i in range(istart+1,iend+1):
+                lc += self.data.col(i)
+            lc.mult(iend-istart)  # take the mean
+        self.lc = lc
+        self.display(mode='LC')
+
+    def computeMS(self,e):
+        "compute MS profile from values"
+        start = self.LCpos.value - self.LCspread.value/2
+        end = self.LCpos.value + self.LCspread.value/2
+        istart = int( self.LC.axis1.mtoi( end ) )
+        iend =  int( self.LC.axis1.mtoi( start ) )
+        ms = self.data.row(istart)
+        if iend>istart:
+            for i in range(istart+1,iend+1):
+                ms += self.data.row(i)
+            ms.mult(iend-istart)  # take the mean
+        self.ms = ms
+        self.display(mode='MS')
+
+    def show(self):
+        "display the graphic widget"
+        display(self.box)
+        display(self.spectral_zone)
+        self.display()
+        display(HTML('<p> </p>'))
+
+    def display(self,mode='LC'):
+        "draws the data"
+        if mode == 'LC':
+            try:
+                d = self.lc.copy()
+            except:
+                d = None
+        if mode == 'MS':
+            try:
+                d = self.ms.copy()
+            except:
+                d = None
+        with self.spectral_zone:
+            self.ax.clear()
+            if d is not None:
+                if mode == 'LC' and self.smooth.value == 'Yes':
+                    d.eroding().sg(21,11-self.SMstrength.value).plus()
+                d.display(figure=self.ax)
+            else:
+                display(HTML("<br><br><h3><i><center>No Data</center></i></h3>"))
 
 class MSPeaker(object):
     "a peak-picker for MS experiments"
@@ -669,13 +802,13 @@ class MS2Dscene(object):
         self.out1D = Output()  # the area where 1D is shown
         with self.out1D:
             display(NODATA)
-            display(Markdown("After loading, use the `Process` or `Load` buttons above"))
+            display(Markdown("After loading, this window will be activated"))
 
         # peaklist
         self.peaklist = Output()  # the area where peak list is shown
         with self.peaklist:
             display(NODATA)
-            display(Markdown("After Processing, use the `Peak Pick` button above"))
+            display(Markdown("After loading, use the `Peak Pick` button above"))
 
         # form
         self.outform = Output()  # the area where processing parameters are displayed
@@ -690,8 +823,8 @@ class MS2Dscene(object):
         #  tabs
         self.tabs = widgets.Tab()
         self.tabs.children = [ self.out1D, self.out2D, self.peaklist, self.outform, self.outinfo ]
-        self.tabs.set_title(0, '1D Display')
-        self.tabs.set_title(1, '2D extraction')
+        self.tabs.set_title(0, '1D Eextraction')
+        self.tabs.set_title(1, '2D Display')
         self.tabs.set_title(2, 'Peak List')
         self.tabs.set_title(3, 'Processing Parameters')
         self.tabs.set_title(4, 'Info')
@@ -726,41 +859,20 @@ class MS2Dscene(object):
             with self.waitarea:
                 print('Error while loading',self.selected, 'file not found or wrong format')
                 self.waitarea.clear_output(wait=True)
+            return
         with self.out2D:
             self.MR2D.show()
 #                display(self.MR2D.box)
 #                display(self.MR2D.sbox)
         with self.out1D:
-            self.MR2D.I1D()
+            self.lci = LC1D(self.MR2D)
+            self.lci.show()
+#            self.MR2D.I1D()
         # with self.outpp2D:
         #     display(self.MR2D.box)  # copie of the main pane
         #     display(self.MR2D.sbox)
         with self.outinfo:
             self.MR2D.report()
             print()
-        self.tabs.selected_index = 1
-
-    def _load2D(self, e):
-        "load 2D data-set and display"
-        self.out2D.clear_output(wait=True)
-        fullpath = op.join(self.base,self.selected)
-        try:
-            DATA = FTICRData(name=fullpath)
-        except:
-            with self.waitarea:
-                print('Error while loading',self.selected)
-                self.waitarea.clear_output(wait=True)
-            return
-        data = None
-        DATA.filename = self.selected
-        DATA.fullpath = fullpath
-        DATA.set_unit('m/z')
-        self.datap = Dataproc(data)
-        self.datap.data = None
-        self.datap.DATA = DATA
-        self.showinfo()
-        self.out1D.clear_output()
-        with self.out1D:
-            DATA.display(title=self.selected, new_fig={'figsize':(10,5)})
         self.tabs.selected_index = 1
 
