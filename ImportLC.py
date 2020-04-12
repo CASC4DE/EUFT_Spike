@@ -126,7 +126,7 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, downsa
     # Start processing - first computes sizes and sub-datasets
     print(data)
     datalist = []   # remembers all downsampled dataset
-    maxvalues = [0.0]  # remembers max values in all datasets - main and downloaded
+    maxvalues = [0.0]  # remembers max values in all datasets - main and downsampled
     if downsample:
         allsizes = comp_sizes(data.size1, data.size2)
         for i, (si1,si2) in enumerate(allsizes):
@@ -143,7 +143,9 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, downsa
         flag = 'l'              # Apex files are in int32
     else:                       # here in 64bit
         flag = 'i'              # strange, but works here.
-    spectre = FTICRData(shape=(sizeF2,))
+    spectre = FTICRData(shape=(sizeF2,))               # to handle FT
+    projection = FTICRData(buffer=np.zeros(sizeF2))    # to accumulate projection
+    projection.axis1 = data.axis2.copy()
     Impwidgets = ['Importing: ', widgets.Percentage(), ' ', widgets.Bar(marker='-',left='[',right=']'), widgets.ETA()]
     pbar = pg.ProgressBar(widgets=Impwidgets, maxval=sizeF1, fd=sys.stdout).start()
     
@@ -166,6 +168,7 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, downsa
             spectre.buffer -= mu
             spectre.zeroing(sigma*3).eroding()
             packet[ipacket,:] = spectre.buffer[:]  # store into packet
+            np.maximum(projection.buffer, spectre.buffer, out=projection.buffer)  # projection
             if (ipacket+1)%szpacket == 0:          # and dump every szpacket
                 maxvalues[0] = max( maxvalues[0], abs(packet.max()) )   # compute max
                 data.buffer[i1-(szpacket-1):i1+1,:] = packet[:,:]  # and copy
@@ -190,7 +193,13 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, downsa
         # flush the remaining packet
         maxvalues[0] = max( maxvalues[0], abs(packet[:ipacket,:].max()) )
         data.buffer[i1-ipacket:i1,:] = packet[:ipacket,:]
-    HF.store_internal_object(maxvalues, h5name='maxvalues')    # store maxvalues in the file
+    # store maxvalues in the file
+    HF.store_internal_object(maxvalues, h5name='maxvalues')
+    # then write projection as 'projectionF2'
+    proj = FTICRData(dim = 1)
+    copyaxes(projection,proj)
+    HF.create_from_template(proj, group='projectionF2')
+    proj.set_buffer( projection.buffer[:] )
     pbar.finish()
     HF.flush()
     return data

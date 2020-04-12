@@ -12,8 +12,10 @@ This version requires ipympl (see: https://github.com/matplotlib/jupyter-matplot
 and the notebook to be opened with %matplotlib widget
 """
 import os.path as op
+import time
 import tables
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 from ipywidgets import interact, fixed, HBox, VBox, GridBox, Label, Layout, Output, Button
 import ipywidgets as widgets
 from IPython.display import display, Markdown, HTML, Image
@@ -86,6 +88,7 @@ class MR(object):
                 pass
             else:
                 self.data.append(dl)
+                self.title = op.basename(self.name)
         for d in self.data:
             if d.size1 != len(self.min):
                 step = len(self.min)//d.size1
@@ -95,7 +98,10 @@ class MR(object):
             d.axis1 = TimeAxis(size=d.size1, tabval=tval, importunit="min", currentunit='sec' )
             d.axis1.currentunit='min'
             d.axis2.currentunit='m/z'
-
+            if d.size2 < 100000:
+                p = d.get_buffer()[:,:]
+                self.proj2 = d.row(0)
+                self.proj2.set_buffer(p.max(0))   # is small enough compute a projection
     def report(self):
         "report object content"
         print (self.name)
@@ -134,6 +140,7 @@ class MR(object):
             datasel.display(zoom=zz, scale=...)
         will display the selected zone with the best possible resolution
         """
+        # WARNING - different from 2DFTICR version
         z1,z2,z3,z4 = flatten(zoom)
         if verbose: print ("F1: %.1f - %.1f  min / F2: %.1f - %.1f m/z"%(z1,z2,z3,z4))
         z1,z2 = min(z1,z2), max(z1,z2)
@@ -148,7 +155,7 @@ class MR(object):
             if sz < self.SIZEMAX:
                 if verbose: print (reso, dl.size1,dl.size2, z1lo, z1up, z2lo, z2up, sz)
                 break
-        zooml = (dl.axis1.itom(z1lo), dl.axis1.itom(z1up), dl.axis2.itomz(z2lo), dl.axis2.itomz(z2up))
+        zooml = (dl.axis1.itom(z1lo), dl.axis1.itom(z1up), dl.axis2.itomz(z2up), dl.axis2.itomz(z2lo))
         if verbose or self.Debug:
             print ("zoom: F1 %.1f-%.1f  /  F2 %.1f-%.1f"%zooml)
             print ("resolution level %d - %.1f Mpix zoom window"%(reso, sz/1024/1024))
@@ -172,6 +179,9 @@ class MR(object):
             for i, m in enumerate(maxvalues):
                 self.data[i]._absmax = m
 
+def different(a,b):
+    "True if more than x% different"
+    return abs( 2*(a-b)/(a+b)) > 0.05
 class MR_interact(MR):
     def __init__(self, name, figsize=(15,6), report=True, show=True, Debug=False):
         """
@@ -180,11 +190,10 @@ class MR_interact(MR):
         """
         super(self.__class__, self).__init__(name, report=report, Debug=Debug)
         self.vlayout = Layout(width='60px')
-        self.pltaxe = None
-        self.pltaxe1D = None
+        self.spec_ax = None
         self.figsize = figsize
 #        self.reset_track()
-        self.check_fig()
+        self.log = []
         if show:  self.show()
 
     def bb(self, name, desc, action, layout=None, tooltip=""):
@@ -193,7 +202,40 @@ class MR_interact(MR):
         butt = widgets.Button(description=desc, layout=layout, tooltip=tooltip)
         butt.on_click(action)
         setattr(self, name, butt)
-##################### 2D #######################
+
+    def check_fig(self):
+        "create figure if missing"
+        if self.spec_ax is None:
+            grid = {'height_ratios':[1,4],'hspace':0,'wspace':0}
+            grid['width_ratios']=[7,1]
+    #        fig, self.axarr = plt.subplots(2, 1, sharex=True, figsize=fsize, gridspec_kw=grid)
+            plt.ioff()
+            self.fig = plt.figure(figsize=self.figsize, constrained_layout=False)
+            spec2 = gridspec.GridSpec(ncols=2, nrows=2, figure=self.fig, **grid)
+            axarr = np.empty((2,2), dtype=object)
+            axarr[0,0] = self.fig.add_subplot(spec2[0, 0])
+            axarr[1,0] = self.fig.add_subplot(spec2[1, 0],sharex=axarr[0, 0])
+            axarr[1,1] = self.fig.add_subplot(spec2[1, 1],sharey=axarr[1, 0])
+            self.top_ax = axarr[0,0]
+            self.spec_ax = axarr[1,0]
+            self.side_ax = axarr[1,1]
+            self.box = self.zoom_box()
+            self.sbox = self.spec_box()
+            self.set_on_redraw()
+            plt.ion()
+
+    def _check_fig(self):
+        "create figure if missing"
+        if self.pltaxe is None:
+            plt.ioff()
+#            plt.clf()
+            fg,ax = plt.subplots(figsize=self.figsize)
+            self.pltaxe = ax
+            self.pltfig = fg
+            self.set_on_redraw()
+            self.box = self.zoom_box()
+            self.sbox = self.spec_box()
+            plt.ion()
     def zoom_box(self):
         "defines the zoom box widget"
         # .  F1 .
@@ -224,8 +266,8 @@ class MR_interact(MR):
                     HBox([blank,    self.z1l, blank]),  
                 ]
             )
-        action_box = VBox([blank ])
-        box = HBox([ self.b_reset, innerbox])
+#        action_box = VBox([blank ])
+#        box = HBox([ self.b_reset, innerbox])
         return innerbox
     def spec_box(self):
         "defines the spectral box widget"
@@ -236,64 +278,67 @@ class MR_interact(MR):
         self.bb('b_redraw', 'Redraw', lambda e : self.display(),
             layout=Layout(width='100px'))
         box = VBox([self.b_reset, self.scale, self.b_redraw], layout=Layout(min_width='105px'))
-        return HBox([box, self.pltfig.canvas])
+        return HBox([box, self.fig.canvas])
     # def scale_up(self, step):
     #     self.scale.value *= 1.1892**step # 1.1892 is 4th root of 2.0
     def show(self):
         "actually show the graphical tool and the interactive spectrum"
+        self.check_fig()
         display(self.box)
         display(self.sbox)
-        self.display()
+        self.display(new=True)
     def ob(self, event):
         "observe events and display"
         if event['name'] != 'value':
             return
         self.display()
-    def display(self, zoom=None, scale=None):
+    def display(self, new=False):
         "computes pictures (display in the SPIKE sense - not ipywidget one)"
-        if zoom is not None:
-            _zoom = zoom
-        else:
-            _zoom = (self.z1l.value, self.z1h.value, self.z2l.value, self.z2h.value)
-        if scale is not None:
-            self.scale.value = scale
-        datasel, zz = self.to_display(_zoom)
-        corner = zz[3]
+        zoom = (self.z1l.value, self.z1h.value, self.z2l.value, self.z2h.value)
+        print('1', zoom)
+        datasel, zz = self.to_display(zoom)
+        print('2', zz)
+        corner = zz[2]
         reso = corner/datasel.axis2.deltamz(corner)
 #        print(corner, reso)
         self.check_fig()  # insure figure is there
 #        with self.out:
-        self.pltaxe.clear() # clear 
+        if new:
+            self.top_ax.clear() # clear
+            self.proj2.display(figure=self.top_ax, title=self.title)
+            self.side_ax.clear() # clear
+            self.side_ax.plot(self.tic, self.min)
+
+        self.spec_ax.clear() # clear 
         datasel.display(zoom=zz, scale=self.scale.value, 
             xlabel='m/z', ylabel='time '+self.data[0].axis1.currentunit,
-            show=False, figure=self.pltaxe)
-        self.pltaxe.text(corner,zz[1], "D#%d R: %.0f"%(self.data.index(datasel)+1, reso))
-    def check_fig(self):
-        "create figure if missing"
-        if self.pltaxe is None:
-            plt.ioff()
-#            plt.clf()
-            fg,ax = plt.subplots(figsize=self.figsize)
-            self.pltaxe = ax
-            self.pltfig = fg
-            self.set_on_redraw()
-            self.box = self.zoom_box()
-            self.sbox = self.spec_box()
-            plt.ion()
+            show=False, figure=self.spec_ax)
+        self.spec_ax.text(corner,zz[1], "D#%d R: %.0f"%(self.data.index(datasel)+1, reso))
+        self.log.append(('display', zz))
+        xb = self.spec_ax.get_xbound()
+        yb = self.spec_ax.get_ybound()
+        print('3', yb, xb)
 
     def update(self, e):
         "update internal zoom coordinates"
 #        self.track.append((self._zoom, self.scale))
 #        self.point = -1 # means last
-        import time
-        xb = self.pltaxe.get_xbound()
-        yb = self.pltaxe.get_ybound()
-        self.z1l.value = yb[0]
-        self.z1h.value = yb[1]
-        self.z2l.value = xb[0]
-        self.z2h.value = xb[1]
-        self.display()
-        time.sleep(0.2)
+        xb = self.spec_ax.get_xbound()
+        yb = self.spec_ax.get_ybound()
+        diff =  different(self.z1l.value, yb[0]) or \
+                different(self.z1h.value, yb[1]) or \
+                different(self.z2l.value, xb[0]) or \
+                different(self.z2h.value, xb[1])
+        if diff:
+            self.z1l.value = yb[0]
+            self.z1h.value = yb[1]
+            self.z2l.value = xb[0]
+            self.z2h.value = xb[1]
+            self.log.append(('update - ', yb, xb))
+            self.display()
+        else:
+            self.log.append('update - no action')
+#            time.sleep(0.2)
     def set_on_redraw(self):
         def on_press(event):
             print('you pressed', event.button, event.xdata, event.ydata)
@@ -301,143 +346,20 @@ class MR_interact(MR):
             print('you released', event.button, event.xdata, event.ydata)
         # def on_scroll(event):
         #     self.scale_up(event.step)
-        cidd = self.pltfig.canvas.mpl_connect('draw_event', self.update)
-#        cids = self.pltfig.canvas.mpl_connect('scroll_event', on_scroll)
-#        cidp = self.pltfig.canvas.mpl_connect('button_press_event', on_press)
-#        cidr = self.pltfig.canvas.mpl_connect('button_release_event', on_release)
+        cidd = self.fig.canvas.mpl_connect('draw_event', self.update)
+#        cids = self.fig.canvas.mpl_connect('scroll_event', on_scroll)
+#        cidp = self.fig.canvas.mpl_connect('button_press_event', on_press)
+#        cidr = self.fig.canvas.mpl_connect('button_release_event', on_release)
+        pass
     def reset(self, b):
         self.scale.value = 1.0
         self.fullzoom()
-        self.reset_track()
         self.display()
     def fullzoom(self):
         self.z1l.value = self.Tmin
         self.z1h.value = self.Tmax
         self.z2l.value = self.axis2.lowmass+0.01
         self.z2h.value = self.highmass
-
-# ####### zoom track - experimental ########
-    def reset_track(self):
-        self.track = []
-        self.point = -1
-#     def back(self, *arg):
-#         self.point -= 1
-#         try:
-#             self._zoom, self.scale = self.track[self.point]
-#         except IndexError:
-#             self.point = -len(self.track)
-#             self._zoom, self.scale = self.track[0]
-#         self.update()
-#         self.display(redraw=True)
-#     def forw(self, *arg):
-#         self.point += 1
-#         try:
-#             self._zoom, self.scale = self.track[self.point]
-#         except IndexError:
-#             self._zoom, self.scale = self.track[-1]
-#             self.point = -1
-#         self.update()
-#         self.display(redraw=True)
-# ##################### 1D ##################
-    def I1D(self):
-        "show the 1D selector"
-        self.r1D = None
-        self.t1D = ''
-        self.i1D = None
-        self.check_fig1D()
-        display(self.ext_box())
-
-    def check_fig1D(self):
-        if self.pltaxe1D is None:
-            fg,ax = plt.subplots(figsize=self.figsize)
-            ax.text(0.1, 0.8, 'Empty - use "horiz" and "vert" buttons above')
-            self.pltaxe1D = ax
-            self.fig1D = fg
-
-    def ext_box(self):
-        "defines the interactive tools for 1D"
-        wf = widgets.BoundedFloatText
-        wi = widgets.BoundedIntText
-        ref = self.data[0]
-        style = {'description_width': 'initial'}
-        lay = Layout(width='120px', height='30px')
-        lay2 = Layout(width='50px', height='30px')
-        self.z1 = wf( value=1.0, min=self.Tmin, max=self.Tmax, description='time', style=style, layout=lay)
-        self.z2 = wf( value=300.0,  min=ref.axis2.lowmass, max=self.highmass, description='m/z', style=style, layout=lay)
-        self.horiz = wi( value=1, min=1, max=20, style=style, layout=lay2)
-        self.vert = wi( value=1, min=1, max=20, style=style, description="/", layout=lay2)
-        def lrow(b, inc=0):
-            rint = int(round(ref.axis1.mztoi(self.z1.value)))
-            if inc !=0:
-                rint += inc
-            self.z1.value = ref.axis1.itomz(rint)
-            if self.t1D == 'col':
-                self.pltaxe1D.clear()
-                self.r1D = None
-            if self.b_accu.value == 'sum' and self.r1D is not None:
-                self.r1D += ref.row(rint)
-            else:
-                self.r1D = ref.row(rint)
-            self.t1D = 'row'
-            self.i1D = rint
-            self.display1D()
-        def lrowp1(b):
-            lrow(b,-1)
-        def lrowm1(b):
-            lrow(b,1)
-        def lcol(b, inc=0):
-            rint = int(round(ref.axis2.mztoi(self.z2.value)))
-            if inc !=0:
-                rint += inc
-            self.z2.value = ref.axis2.itomz(rint)
-            if self.t1D == 'row':
-                self.pltaxe1D.clear()
-                self.r1D = None
-            if self.b_accu.value == 'sum' and self.r1D is not None:
-                self.r1D += ref.col(rint)
-            else:
-                self.r1D = ref.col(rint)
-            self.t1D = 'col'
-            self.i1D = rint
-            self.display1D()
-        def lcolp1(b):
-            lcol(b,-1)
-        def lcolm1(b):
-            lcol(b,1)
-        def on_press(event):
-            v = self.r1D.axis1.mztoi(event.xdata)
-            if self.t1D == 'col':
-                self.z1.value = v
-            elif self.t1D == 'row':
-                self.z2.value = v
-        cids = self.fig1D.canvas.mpl_connect('button_press_event', on_press)
-
-        self.bb('b_row', 'horiz', lrow, layout=Layout(width='60px'), tooltip='extract an horizontal row')
-        self.bb('b_rowp1', '+1', lrowp1, layout=Layout(width='30px'), tooltip='next row up')
-        self.bb('b_rowm1', '-1', lrowm1, layout=Layout(width='30px'), tooltip='next row down')
-        self.bb('b_col', 'vert', lcol, layout=Layout(width='60px'), tooltip='extract a vertical col')
-        self.bb('b_colp1', '+1', lcolp1, layout=Layout(width='30px'), tooltip='next col right')
-        self.bb('b_colm1', '-1', lcolm1, layout=Layout(width='30px'), tooltip='next col left')
-        self.b_accu = widgets.Dropdown(options=['off', 'graphic', 'sum'],
-                value='off', description='Accumulate plots while scanning:', style=style)
-        return VBox([ widgets.HTML('<h3>Extract 1D MS Spectrum going through given F1-F2 coordinates</h3>'),
-                    HBox([widgets.HTML("<B>coord:</B>"),self.z1,
-                          self.b_row, self.b_rowp1, self.b_rowm1, self.b_accu]),
-                    HBox([widgets.HTML("<B>coord:</B>"),self.z2,
-                          self.b_col, self.b_colp1, self.b_colm1])])
-    def display1D(self):
-        "display the selected 1D"
-        if self.t1D == 'row':
-            title = 'horizontal extract at t=%f min (index %d)'%(self.z1.value, self.i1D)
-            label = str(self.z1.value)
-        elif self.t1D == 'col':
-            title = 'vertical extract at F2=%f m/z (index %d)'%(self.z2.value, self.i1D)
-            label = str(self.z2.value)
-        if self.b_accu.value != 'graphic':
-            self.pltaxe1D.clear()
-            label = None
-        self.r1D.display(show=False, figure=self.pltaxe1D, new_fig=False, label=label, title=title)
-
 
 class LC1D(VBox):
     """

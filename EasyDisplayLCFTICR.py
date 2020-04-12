@@ -45,7 +45,20 @@ def dodoc(md):
 # %%
 from importlib import reload  # the two following lines are debugging help
 reload(LCI)                   # and can be removed safely when in production
-ms = LCI.MS2Dscene()
+#mr = LCI.MS2Dscene()
+ms = LCI.MR_interact('FTICR_DATA/output.msh5', report=False,show=True, figsize=(8,6))
+
+# %%
+ms.log
+
+# %%
+ms.fig.canvas
+
+# %%
+LCI.different(1,1.011)
+
+# %%
+ms.show()
 
 # %%
 doc = dodoc('''# DOCUMENTATION
@@ -144,3 +157,25 @@ https://mzmine.github.io/
 - peak detection
 '''
 
+
+# %%
+STOP
+
+# %%
+# ls FTICR_DATA/
+
+# %%
+from importlib import reload  # the two following lines are debugging help
+reload(LCI)                   # and can be removed safely when in production
+mr = LCI.MR_interact('FTICR_DATA/output.msh5', report=False,show=False)
+
+# %%
+mr.show
+
+# %%
+np.maximum(np.arange(10),np.arange(10,0,-1))
+
+# %%
+# np.maximum?
+
+# %%
