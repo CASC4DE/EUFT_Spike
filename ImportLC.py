@@ -197,9 +197,9 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, downsa
     HF.store_internal_object(maxvalues, h5name='maxvalues')
     # then write projection as 'projectionF2'
     proj = FTICRData(dim = 1)
-    copyaxes(projection,proj)
+    proj.axis1 = data.axis2.copy()
     HF.create_from_template(proj, group='projectionF2')
-    proj.set_buffer( projection.buffer[:] )
+    proj.buffer[:] =  projection.buffer[:]
     pbar.finish()
     HF.flush()
     return data
