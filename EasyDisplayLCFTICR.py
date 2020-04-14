@@ -45,20 +45,12 @@ def dodoc(md):
 # %%
 from importlib import reload  # the two following lines are debugging help
 reload(LCI)                   # and can be removed safely when in production
-#mr = LCI.MS2Dscene()
-ms = LCI.MR_interact('FTICR_DATA/output.msh5', report=False,show=True, figsize=(8,6))
+mr = LCI.MS2Dscene(Debug=False)
+#ms = LCI.MR_interact('FTICR_DATA/output.msh5', report=True, show=False, figsize=(8,6))
+#m1 = LCI.LC1D(ms,show=False)
 
 # %%
-ms.log
-
-# %%
-ms.fig.canvas
-
-# %%
-LCI.different(1,1.011)
-
-# %%
-ms.show()
+mr.MR2D.top_ax.
 
 # %%
 doc = dodoc('''# DOCUMENTATION
@@ -116,7 +108,7 @@ comment = dodoc('''## *comments*
 This is a temporary version.
 
 expect improvements, as certain parts are still in development
-- $m/z$ calibration
+- *m/z* calibration
 - more efficient peak-picking
 - export to mzml
 - ...
@@ -131,24 +123,21 @@ accordion
 # %%
 todo = '''# TODO
 ### importer
-- 
+- pb d'axe de la projection
+- doit et automation
 
 ### to come
 - changer le selecteur
-- mise à jour de la boite de zoom (easyDisplay2D)
 - changer l'affichage
-    - composite avec projection des axes (Proc2DNMR)
-    - projection spectre MS ? (calculée en amont)
     - LC horiz ?
     - 3D ?
 - extraction of 1D 
-    - Tic
-    - Pmax
-    - 2 onglets 1D
-        - à une masse donnée  ou un intervalle => chromatogramme
-        - à un temps donné - ou un intervalle de temps => spectre masse
+    - titre Tic
+    - Pmax ?
+    - extraction - case editable pour les valeurs
     - multimanipe
-    - affichage courge / zones colorées
+    - affichage courbe / zones colorées
+- NO DATA qui reste
 
 https://mzmine.github.io/
 
@@ -157,25 +146,3 @@ https://mzmine.github.io/
 - peak detection
 '''
 
-
-# %%
-STOP
-
-# %%
-# ls FTICR_DATA/
-
-# %%
-from importlib import reload  # the two following lines are debugging help
-reload(LCI)                   # and can be removed safely when in production
-mr = LCI.MR_interact('FTICR_DATA/output.msh5', report=False,show=False)
-
-# %%
-mr.show
-
-# %%
-np.maximum(np.arange(10),np.arange(10,0,-1))
-
-# %%
-# np.maximum?
-
-# %%
