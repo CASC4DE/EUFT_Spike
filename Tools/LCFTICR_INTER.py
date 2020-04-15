@@ -305,7 +305,7 @@ class MR_interact(MR):
             self.proj2.display(figure=self.top_ax, title=self.title)
             self.side_ax.clear() # clear
             self.side_ax.plot(self.tic, self.min)
-
+            self.side_ax.set_title('TIC')
         self.spec_ax.clear() # clear 
         datasel.display(zoom=zz, scale=self.scale.value, 
             xlabel='m/z', ylabel='time '+self.data[0].axis1.currentunit,
@@ -390,6 +390,14 @@ class LC1D(VBox):
         self.box = self.buildbox()
         if show:
             self.show()
+    def wait(self):
+        "show a little waiting wheel"
+        with open("Tools/icon-loader.gif", "rb") as F:
+            self.wwait = widgets.Image(value=F.read(),format='gif',width=40)
+            display(self.wwait)
+    def done(self):
+        "remove the waiting wheel"
+        self.wwait.close()
 
     def bb(self, name, desc, action, layout=None, tooltip="", button_style='success'):
         "build a button into self"
@@ -431,10 +439,10 @@ class LC1D(VBox):
                 self.SMstrength.disabled = True
             else:
                 self.SMstrength.disabled = False
-            self.computeLC('action')
+            self.displayLC()
         self.smooth.observe(on_sm_change)
         def on_smst_change(e):
-            self.computeLC('action')
+            self.displayLC()
         self.SMstrength.observe(on_smst_change)
 
         info1 = widgets.HTML('<center>Action</center>', layout=Layout(flex='1'))
@@ -451,6 +459,7 @@ class LC1D(VBox):
 
     def computeLC(self,e):
         "compute LC profile from values"
+        self.wait()
         start = self.MSpos.value - self.MSspread.value/2
         end = self.MSpos.value + self.MSspread.value/2
         istart = int( self.MS.axis1.mztoi( end ) )
@@ -461,10 +470,12 @@ class LC1D(VBox):
                 lc += self.data.col(i)
             lc.mult(1/(iend-istart))  # take the mean
         self.lc = lc
-        self.display(mode='LC')
+        self.displayLC()
+        self.done()
 
     def computeMS(self,e):
         "compute MS profile from values"
+        self.wait()
         start = self.LCpos.value - self.LCspread.value/2
         end = self.LCpos.value + self.LCspread.value/2
         istart = int( self.LC.axis1.mtoi( end ) )
@@ -475,15 +486,42 @@ class LC1D(VBox):
                 ms += self.data.row(i)
             ms.mult(1/(iend-istart))  # take the mean
         self.ms = ms
-        self.display(mode='MS')
+        self.displayMS()
+        self.done()
 
     def show(self):
         "display the graphic widget"
         display(self.box)
-        self.display()
+        self.displayLC()
 #        display(HTML('<p> </p>'))
 
-    def display(self,mode='LC'):
+    def displayLC(self):
+        "draws the LC data"   
+        try:
+            d = self.lc.copy()
+        except:
+            d = None
+        self.ax.clear()
+        if d is not None:
+            if self.smooth.value == 'Yes':
+                d.eroding().sg(21,11-self.SMstrength.value).plus()
+            d.display(figure=self.ax)
+        else:
+            display(HTML("<br><br><h3><i><center>No Data</center></i></h3>"))
+
+    def displayMS(self):
+        "draws the LC data"   
+        try:
+            d = self.ms.copy()
+        except:
+            d = None
+        self.ax.clear()
+        if d is not None:
+            d.display(figure=self.ax)
+        else:
+            display(HTML("<br><br><h3><i><center>No Data</center></i></h3>"))
+
+    def _display(self,mode='LC'):
         "draws the data"   
         if mode == 'LC':
             try:
@@ -801,6 +839,7 @@ class MS2Dscene(object):
                 report=False, show=False, Debug=self.debug)
         except: # (FileNotFoundError NoSuchNodeError):
             self.MR2D = None
+            self.done()
             with self.waitarea:
                 print('Error while loading',self.selected, 'file not found or wrong format')
                 self.waitarea.clear_output(wait=True)

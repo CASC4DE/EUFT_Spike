@@ -15,9 +15,8 @@
 # ---
 
 # %% [markdown]
-# # FTICR-MS Processing and Display
-#
-# a simplified environment for processing 1D Bruker FTICR datasets with `SPIKE`
+# # Processing and Analysis of MS FTICR data
+# ### *EU-FTICR-MS Network*
 
 # %%
 # %%capture
@@ -33,20 +32,6 @@ import Tools.FTICR_INTER as FI
 
 
 # %%
-# improve display
-from IPython.display import display, HTML, Javascript, Markdown
-from ipywidgets import interact, fixed, HBox, VBox, GridBox, Label, Layout, Output, Button
-import ipywidgets as widgets
-
-display(HTML('<style>hr {height: 2px; border: 0;border-top: 1px solid #ccc;margin: 1em 0;padding: 0; }</style>'))
-def dodoc(md):
-    out = Output()
-    with out:
-        display(Markdown(md))
-    return out
-
-
-# %%
 # launch
 #display(Markdown('## ... program is Ready'))
 #I.hidecode(initial='show', message=False)
@@ -58,29 +43,63 @@ w = FI.IFTMS()
 # ---
 
 # %%
+# improve display
+from IPython.display import display, HTML, Javascript, Markdown
+from ipywidgets import interact, fixed, HBox, VBox, GridBox, Label, Layout, Output, Button
+import ipywidgets as widgets
+
+display(HTML('<style>hr {height: 2px; border: 0;border-top: 1px solid #ccc;margin: 1em 0;padding: 0; }</style>'))
+def dodoc(md):
+    out = Output()
+    with out:
+        display(Markdown(md))
+    return out
 doc = dodoc('''# DOCUMENTATION
 
-## display
-Figures can be explored *(zoom, shift, resize, etc)* with the jupyter tools displayed  below the dataset.
 
-The drawing zone can be resized using the little grey triangle on the lower-right corner
+This program allows to process and analyse **MS FTICR** data-sets, i.e. raw transients
+as obtained from the FTICR machine.
 
-Figures can also be saved as a `png` graphic file.
+It is based on the [Spike](https://forum.casc4de.eu/p/2-spike) processing program,
+the [scientific python](https://www.scipy.org/) language,
+the [Jupyter](https://jupyter.org/) graphic environment,
+and the [Voilà](https://github.com/voila-dashboards/voila) dashboard system.
 
-## Standard processing:
+The program allows process the transients, detect peaks, interact with the spectrum,
+and store the final result.
+A signed audit travail of the processing is maintained, in order to insure a complete reproducibility of the process.
+
+There is no theoretical limit on the size of the data-set to process and visualize. 
+
+The result of the processing is stored in a `*.msh5` file with the same filename than the Bruker directory.
+These files use the standard 
+[HDF5 format](https://www.hdfgroup.org/solutions/hdf5), and can be read with any program able to access this format.
+
+Only files in the seafile deposit can be handled.
+
+## Standard Operation:
 #### Choose a file
 Only files in the seafile deposit can be handled.
-Use  the selector to choose an experiment. 
+Use  the selector to choose an experiment.
+Bruker `experiment.d` contains the raw transiens, and `.msh5` files are previously processed an stored data.
 
 #### Load
-The `Load` button will get the transient of the  selected experiment and display it.
+The 
+<button class="p-Widget jupyter-widgets jupyter-button widget-button mod-success" >Load</button>
+button will get the transient of the  selected experiment and display it.
 Any previous processing will be lost
 
 #### Process
-Will compute the Spectrum, according to the parameters define in the "Processing Parameters" pane
+<button class="p-Widget jupyter-widgets jupyter-button widget-button mod-success" >Process</button>
+ computes the Spectrum, according to the parameters define in the `Processing Parameters` pane
 
 #### Peak Pick
-Will compute the Peak list, according to the parameters define in the "Processing Parameters" pane
+<button class="p-Widget jupyter-widgets jupyter-button widget-button mod-success" >Peak Pick</button>
+ computes the Peak list, according to the parameters define in the `Processing Parameters` pane
+
+#### Save
+<button class="p-Widget jupyter-widgets jupyter-button widget-button mod-success" >Save</button>
+stores a `.msh5` file into the initial `experiment.d` firectory
 
 ## Panes
 - raw fid: the transient, if loaded
@@ -89,12 +108,19 @@ Will compute the Peak list, according to the parameters define in the "Processin
 - Processing Parameters: all the parameters used for the processing: 
 - Info: details on the experiment and Processing audit trails
 
+## display
+Figures can be explored *(zoom, shift, resize, etc)* with the jupyter tools displayed  below the dataset.
+
+The drawing zone can be resized using the little grey triangle on the lower-right corner
+
+Figures can also be saved as a `png` graphic file.
+
 ## Calibration
 The calibration used by SPIKE is based on a 2 or 3 parameters equation :
-$$
-f = \frac{A}{m/z} - B + \frac{C}{(m/z)^2}
-$$
-where $A$ $B$ and $C$ are imported from the Bruker `ML1` `ML2` `ML3` parameters.
+
+*f = A / (m/z) - B + C (m/z)²*
+
+where *A* *B* and *C* are imported from the Bruker `ML1` `ML2` `ML3` parameters.
 
 **Be carefull** Bruker uses a sign inversion on `ML2` depending on the value of `ML3` - this is not used, and the equation is allwas the same.
 
@@ -106,10 +132,11 @@ comment = dodoc('''## *comments*
 This is a temporary version.
 
 expect improvements, as certain parts are still in development
-- $m/z$ calibration
+- precise *m/z* calibration
 - more efficient peak-picking
+- export to mzml and csv
 - superimposition of several spectra
-- export to mzml
+- storage of the audit-trail
 - ...
 ''')
 
