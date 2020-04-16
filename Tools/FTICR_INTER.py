@@ -38,6 +38,20 @@ SIZEMAX = 8*1024*1024        # largest zone to display
 NbMaxDisplayPeaks = 200      # maximum number of peaks to display at once
 
 # TOOLS FOR 1D FTICR
+
+def injectcss():
+    display(HTML('''
+    <style>
+    hr {height: 2px; border: 0;border-top: 1px solid #ccc;margin: 1em 0;padding: 0; }
+    .widget-button {
+        width:100px;
+        border:1px solid lightgray;
+        border-radius:7px;
+        box-shadow: 3px 3px 3px #666666;
+        margin-right: 10px}
+    </style>
+    '''))
+
 class FileChooser(VBox):
     """a simple chooser for Jupyter for selecting *.d directories"""
     def __init__(self, base='DATA', dotd=True, msh5=True):
@@ -80,7 +94,7 @@ class Dataproc:
 
 class IFTMS(object):
     "a widget to set all 1D MS tools into one screen"
-    def __init__(self, show=True):
+    def __init__(self, show=True, style=True):
         # header
         #   filechooser
         self.base = BASE
@@ -91,18 +105,18 @@ class IFTMS(object):
         #   buttons
         #       load
         self.bload = Button(description='Load',layout=Layout(width='15%'),
-                button_style='success', tooltip='load and display experiment')
+                tooltip='load and display experiment')
         self.bload.on_click(self.load)
         #       FT
         self.bproc = Button(description='Process',layout=Layout(width='15%'),
-                button_style='success', tooltip='Fourier transform of the fid')
+                tooltip='Fourier transform of the fid')
         self.bproc.on_click(self.process)
         #       pp
         self.bpeak = Button(description='Peak Pick',layout=Layout(width='15%'),
-                button_style='success', tooltip='Detect Peaks')
+                tooltip='Detect Peaks')
         self.bpeak.on_click(self.peakpick)
         self.bsave = Button(description='Save',layout=Layout(width='15%'),
-                button_style='success', tooltip='Save processed data set in msh5 format')
+                tooltip='Save processed data set in msh5 format')
         self.bsave.on_click(self.save)
 
         # GUI set-up and scene
@@ -160,6 +174,8 @@ class IFTMS(object):
         #                 self.FC,
         #                 HBox([self.bdisp2D, self.bpp2D, self.bdisp1D])
         #                 ])
+        if style:
+            injectcss()
         if show:
             display(self.box)
 
@@ -446,11 +462,9 @@ class Calib(object):
         self.B = widgets.FloatText(value=data.axis1.calibB, description="B")
         self.C = widgets.FloatText(value=data.axis1.calibC, description="C")
         self.bupdate = widgets.Button(description="Update",
-                button_style='success', # 'success', 'info', 'warning', 'danger' or ''
                 tooltip='set current data-sets to displayed values')
         self.bupdate.on_click(self.update)
         self.bback = widgets.Button(description="Restore",
-                button_style='success', # 'success', 'info', 'warning', 'danger' or ''
                 tooltip='restore dataset to initial values')
         self.bback.on_click(self.back)
         display(VBox([  HBox([self.A, widgets.Label('Hz/Th')]),
@@ -505,7 +519,6 @@ class SuperImpose(object):
             N = int(input('how many spectra do you want to compare:  '))
         self.Chooser = FileChooser(base=base, filetype=filetype, mode='r', show=False)
         self.bsel = widgets.Button(description='Copy',layout=Layout(width='10%'),
-                button_style='info', # 'success', 'info', 'warning', 'danger' or ''
                 tooltip='copy selected data-set to entry below')
         self.to = widgets.IntText(value=1,min=1,max=N,layout=Layout(width='10%'))
         self.bsel.on_click(self.copy)

@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from ipywidgets import interact, fixed, HBox, VBox, GridBox, Label, Layout, Output, Button
 import ipywidgets as widgets
-from IPython.display import display, Markdown, HTML, Image
+from IPython.display import display, Markdown, HTML, Image, clear_output
 import numpy as np
 from xml.etree import cElementTree as ET
 
@@ -40,11 +40,23 @@ BASE = 'FTICR_DATA'              # name of the
 SIZEMAX = 8*1024*1024        # largest zone to display
 NbMaxDisplayPeaks = 200      # maximum number of peaks to display at once
 
+def Set_Table_Param():
+#    if debug>0: return
+    tables.parameters.CHUNK_CACHE_PREEMPT = 1
+    tables.parameters.CHUNK_CACHE_SIZE = 100*1024*1024
+    tables.parameters.METADATA_CACHE_SIZE  = 100*1024*1024
+    tables.parameters.NODE_CACHE_SLOTS = 100*1024*1024
+    #tables.parameters.EXPECTED_ROWS_EARRAY = 100
+    #tables.parameters.EXPECTED_ROWS_TABLE =100
+    #tables.parameters.MAX_THREADS = 8
+    #tables.parameters.PYTABLES_SYS_ATTRS = False
+
 # TOOLS FOR LC FTICR
 class MR(object):
     "this class handles multiresolution datasets"
     def __init__(self, name, report=True, Debug=DEBUG):
         "name : filename of the msh5 multiresolution file"
+        Set_Table_Param()
         self.SIZEMAX = SIZEMAX
         self.name = name
         self.data = []                   # will contain all resolutions
@@ -399,35 +411,54 @@ class LC1D(VBox):
         "remove the waiting wheel"
         self.wwait.close()
 
-    def bb(self, name, desc, action, layout=None, tooltip="", button_style='success'):
+    def bb(self, name, desc, action, layout, tooltip=""):
         "build a button into self"
-        if layout is None: layout = Layout(width='60px')
-        butt = widgets.Button(description=desc, layout=layout, tooltip=tooltip, button_style=button_style)
+        butt = widgets.Button(description=desc, layout=layout, tooltip=tooltip)
         butt.on_click(action)
         setattr(self, name, butt)
     def buildbox(self):
         "builds the actions box"
         dstyle = {'description_width': 'initial'}
         # LC
-        self.bb('bMS', 'Spect.', self.computeMS,
-            layout=Layout(flex='1'))
+        self.bb('bMS', 'get', self.computeMS,
+            layout=Layout(flex='0.5',width='60px'))
         LCstep = self.LC.axis1.itom(1) - self.LC.axis1.itom(0)
         self.LCpos = widgets.FloatSlider(value=0.1, step=LCstep, min=self.LC.axis1.Tmin/60, max=self.LC.axis1.Tmax/60,
-            description='@ min.',style=dstyle,
+            description='min.',style=dstyle, readout=False,
             layout=Layout(flex='4'))
+
+        self.lcread = widgets.FloatText(value=0.1, step=LCstep, min=self.LC.axis1.Tmin/60, max=self.LC.axis1.Tmax/60,
+            layout=Layout(width='7em'))
+        def on_lcread(e):
+            self.LCpos.value = self.lcread.value
+        def on_lcpos(e):
+            self.lcread.value = self.LCpos.value
+        self.lcread.observe(on_lcread)
+        self.LCpos.observe(on_lcpos)
+
         self.LCspread = widgets.FloatSlider(min=LCstep, max=5.0, step=LCstep,
             description='±', style=dstyle,
             layout=Layout(flex='2'))
         # MS
-        self.bb('bLC', 'Chrom.', self.computeLC,
-            layout=Layout(flex='1'))
+        self.bb('bLC', 'get', self.computeLC,
+            layout=Layout(flex='0.5',width='60px'))
         self.MSpos = widgets.FloatSlider(value=200.0, step=0.01,
             min=self.MS.axis1.lowmass, max=self.MS.axis1.highmass,
-            description='@ m/z', style=dstyle,
+            description='m/z', style=dstyle, readout=False,
             layout=Layout(flex='4'))
+        self.msread = widgets.FloatText(value=200.0, step=0.01,
+            min=self.MS.axis1.lowmass, max=self.MS.axis1.highmass,
+            layout=Layout(width='7em'))
+        def on_msread(e):
+            self.MSpos.value = self.msread.value
+        def on_mspos(e):
+            self.msread.value = self.MSpos.value
+        self.msread.observe(on_msread)
+        self.MSpos.observe(on_mspos)
         self.MSspread = widgets.FloatLogSlider(value=0.01, min=-3, max=0,
-            description='±',style=dstyle,
+            description='±',style=dstyle, disabled = True,
             layout=Layout(flex='2'))
+
 #        self.smooth = widgets.ToggleButton(value=False)
         self.smooth = widgets.Dropdown(options=['Yes','No'],value='No',
             description='smoothing:',
@@ -445,15 +476,23 @@ class LC1D(VBox):
             self.displayLC()
         self.SMstrength.observe(on_smst_change)
 
-        info1 = widgets.HTML('<center>Action</center>', layout=Layout(flex='1'))
+        info1 = widgets.HTML('<center>Action</center>', layout=Layout(flex='0.5'))
         info2 = widgets.HTML('<center>Coordinates</center>', layout=Layout(flex='4'))
         info3 = widgets.HTML('<center>Integration Width</center>', layout=Layout(flex='2'))
         info4 = widgets.HTML('<center>Smoothing the chromatogram</center>', layout=Layout(flex='3'))
         space1 = widgets.HTML('&nbsp;', layout=Layout(flex='3'))
-        return VBox([   HBox([info1, info2, info3, info4],
+        labellc = widgets.HTML('<center><b>LC dimension</b></center>',layout=Layout(flex='1', text_align='right'))
+        labelms = widgets.HTML('<center><b>MS dimension</b></center>',layout=Layout(flex='1'))
+        # return VBox([   HBox([info1, info2, info3, info4],
+        #                         layout=Layout(justify_content="space-around")),
+        #                 HBox([self.bMS, self.LCpos, self.LCspread],layout=Layout(width='70%')),
+        #                 HBox([self.bLC, self.MSpos, self.MSspread,self.smooth, self.SMstrength]),
+        #                 self.fig.canvas],
+        #             layout=Layout(width='100%',border='solid 2px',))
+        return VBox([   HBox([info2, info3, info4, info1],
                                 layout=Layout(justify_content="space-around")),
-                        HBox([self.bMS, self.LCpos, self.LCspread],layout=Layout(width='70%')),
-                        HBox([self.bLC, self.MSpos, self.MSspread,self.smooth, self.SMstrength]),
+                        HBox([labelms, self.lcread, self.LCpos, self.LCspread, space1, self.bMS]),
+                        HBox([labellc, self.msread, self.MSpos, self.MSspread,self.smooth, self.SMstrength,self.bLC]),
                         self.fig.canvas],
                     layout=Layout(width='100%',border='solid 2px',))
 
@@ -733,7 +772,7 @@ class SuperImpose(object):
 
 class MS2Dscene(object):
     "a widget to set all MS tools into one screen"
-    def __init__(self, show=True, Debug=DEBUG):
+    def __init__(self, show=True, style=True, Debug=DEBUG):
         # header
         #   filechooser
         self.base = BASE
@@ -744,12 +783,12 @@ class MS2Dscene(object):
 
         #   buttons
         #       load
-        self.bload = Button(description='Load',layout=Layout(width='15%'),
-                button_style='success', tooltip='load and display experiment')
+        self.bload = Button(description='Load',  #layout=Layout(width='15%'),
+                tooltip='load and display experiment')
         self.bload.on_click(self.load2D)
         #       pp
-        self.bpeak = Button(description='Peak Pick',layout=Layout(width='15%'),
-                button_style='success', tooltip='Detect Peaks')
+        self.bpeak = Button(description='Peak Pick', #layout=Layout(width='15%'),
+                 tooltip='Detect Peaks')
 #        self.bpeak.on_click(self.peakpick)
 
         # GUI set-up and scene
@@ -812,6 +851,8 @@ class MS2Dscene(object):
         #                 self.FC,
         #                 HBox([self.bdisp2D, self.bpp2D, self.bdisp1D])
         #                 ])
+        if style:
+            FI.injectcss()
         if show:
             display(self.box)
 
@@ -845,16 +886,19 @@ class MS2Dscene(object):
                 self.waitarea.clear_output(wait=True)
             return
         with self.out2D:
+            clear_output()
             self.MR2D.show()
 #                display(self.MR2D.box)
 #                display(self.MR2D.sbox)
         with self.out1D:
+            clear_output()
             self.lci = LC1D(self.MR2D, Debug=self.debug)
 #            self.MR2D.I1D()
         # with self.outpp2D:
         #     display(self.MR2D.box)  # copie of the main pane
         #     display(self.MR2D.sbox)
         with self.outinfo:
+            clear_output()
             self.MR2D.report()
             print()
         self.tabs.selected_index = 1

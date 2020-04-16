@@ -43,14 +43,11 @@ w = FI.IFTMS()
 # ---
 
 # %%
-# improve display
-from IPython.display import display, HTML, Javascript, Markdown
-from ipywidgets import interact, fixed, HBox, VBox, GridBox, Label, Layout, Output, Button
+# improve display of docu.
+from IPython.display import display, Markdown
 import ipywidgets as widgets
-
-display(HTML('<style>hr {height: 2px; border: 0;border-top: 1px solid #ccc;margin: 1em 0;padding: 0; }</style>'))
 def dodoc(md):
-    out = Output()
+    out = widgets.Output()
     with out:
         display(Markdown(md))
     return out
@@ -85,7 +82,7 @@ Bruker `experiment.d` contains the raw transiens, and `.msh5` files are previous
 
 #### Load
 The 
-<button class="p-Widget jupyter-widgets jupyter-button widget-button mod-success" >Load</button>
+<button class="p-Widget jupyter-widgets jupyter-button widget-button" >Load</button>
 button will get the transient of the  selected experiment and display it.
 Any previous processing will be lost
 
@@ -118,7 +115,7 @@ Figures can also be saved as a `png` graphic file.
 ## Calibration
 The calibration used by SPIKE is based on a 2 or 3 parameters equation :
 
-*f = A / (m/z) - B + C (m/z)²*
+*f = A / (m/z) - B + C / (m/z)²*
 
 where *A* *B* and *C* are imported from the Bruker `ML1` `ML2` `ML3` parameters.
 

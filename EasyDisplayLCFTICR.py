@@ -34,16 +34,19 @@ from importlib import reload  # the two following lines are debugging help
 reload(LCI)                   # and can be removed safely when in production
 mr = LCI.MS2Dscene(Debug=False)
 #ms = LCI.MR_interact('FTICR_DATA/output.msh5', report=True, show=False, figsize=(8,6))
-#m1 = LCI.LC1D(ms,show=False)
+
+# %% [raw]
+# from importlib import reload  # the two following lines are debugging help
+# reload(LCI)                   # and can be removed safely when in production
+# LCI.FI.injectcss()
+# m1 = LCI.LC1D(ms,show=True)
 
 # %%
-# improve display
-from IPython.display import display, HTML, Javascript, Markdown
-from ipywidgets import interact, fixed, HBox, VBox, GridBox, Label, Layout, Output, Button
+# improve display of docu.
+from IPython.display import display, Markdown
 import ipywidgets as widgets
-display(HTML('<style>hr {height: 2px; border: 0;border-top: 1px solid #ccc;margin: 1em 0;padding: 0; }</style><hr>'))
 def dodoc(md):
-    out = Output()
+    out = widgets.Output()
     with out:
         display(Markdown(md))
     return out
@@ -79,13 +82,13 @@ Use  the selector to choose a `.msh5` file to display.
 
 #### Load
 The 
-<button class="p-Widget jupyter-widgets jupyter-button widget-button mod-success" >Load</button>
+<button class="p-Widget jupyter-widgets jupyter-button widget-button" >Load</button>
 button will get the processed experiment and display it.
 
 **Warning** for the moment this tool present all `*.msh5` files rather than only the LC-MS files. - this will be solved soon -
 
 #### Peak Pick
-<button class="p-Widget jupyter-widgets jupyter-button widget-button mod-success" >Peak Pick</button>
+<button class="p-Widget jupyter-widgets jupyter-button widget-button" >Peak Pick</button>
 Will compute the Peak list, according to the parameters define in the "Processing Parameters" pane.
 
 *This tool is not active and still in development*
@@ -101,12 +104,12 @@ Figures can also be saved as a `png` graphic file.
 #### 1D Extraction
 Extract of the experiment can be displayed here, 
 
-- Click on 
-<button class="p-Widget jupyter-widgets jupyter-button widget-button mod-success" >Spect.</button>
+- On the **MS** line click on 
+<button class="p-Widget jupyter-widgets jupyter-button widget-button" >get</button>
 to get a MS spectra extracted at the retention time
     given by the slider - labelled in minutes *(you can also type the value)*
-- Click on
-<button class="p-Widget jupyter-widgets jupyter-button widget-button mod-success" >Chrom.</button>
+- On the **LC** line click on
+<button class="p-Widget jupyter-widgets jupyter-button widget-button" >get</button>
 to get a chromatogram of the *m/z* peak location given by the slider *(you can also type the value)*
     - if needed the chromatogram can be smoothed for better looking.
 - both extractions can be summed other a small region around the given location - which width is given by the second slider.
@@ -134,7 +137,7 @@ In particular the different resolutions layered in the document are presented.
 ## Calibration
 The calibration used by SPIKE is based on a 2 or 3 parameters equation :
 
-*f = A / (m/z) - B + C (m/z)²*
+*f = A / (m/z) - B + C / (m/z)²*
 
 where *A* *B* and *C* are imported from the Bruker `ML1` `ML2` `ML3` parameters.
 
