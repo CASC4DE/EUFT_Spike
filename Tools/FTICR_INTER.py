@@ -6,7 +6,7 @@ A tool to display FT-ICR data-sets
 
 to be embedded in jupyter notebook
 
-MAD march 2020
+MAD april 2020
 
 This version requires ipympl (see: https://github.com/matplotlib/jupyter-matplotlib )
 and the notebook to be opened with %matplotlib widget
@@ -36,6 +36,7 @@ DEBUG = False
 BASE = 'FTICR_DATA'              # name of the 
 SIZEMAX = 8*1024*1024        # largest zone to display
 NbMaxDisplayPeaks = 200      # maximum number of peaks to display at once
+version = "1.0.0"
 
 # TOOLS FOR 1D FTICR
 

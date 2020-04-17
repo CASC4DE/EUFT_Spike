@@ -201,7 +201,7 @@ procparam_MS = {
     'center_fid': "Yes",
     'apodisations': MS_Apod,         # list of defined apodisation
     'apod_todo': 'hamming',          # default one
-    'zf_level': 4, # 4 !
+    'zf_level': 2, # 4 !
     'baseline_correction': {
         'None': 'No baseline correction',
         'offset': 'Offset correction'
@@ -219,7 +219,7 @@ procparam_MS = {
         'auto':   'Automatically after Fourier-transform'
         },
     'peakpicking_todo': 'auto',
-    'peakpicking_noise_level': 3,
+    'peakpicking_noise_level': 30,
     'centroid': "Yes",
 }
 

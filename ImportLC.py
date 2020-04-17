@@ -15,6 +15,17 @@ from spike.util import progressbar as pg
 from spike.util import widgets
 from spike.NPKData import copyaxes
 
+def Set_Table_Param():
+#    if debug>0: return
+    tables.parameters.CHUNK_CACHE_PREEMPT = 1
+    tables.parameters.CHUNK_CACHE_SIZE = 100*1024*1024
+    tables.parameters.METADATA_CACHE_SIZE  = 100*1024*1024
+    tables.parameters.NODE_CACHE_SLOTS = 100*1024*1024
+    #tables.parameters.EXPECTED_ROWS_EARRAY = 100
+    #tables.parameters.EXPECTED_ROWS_TABLE =100
+    #tables.parameters.MAX_THREADS = 8
+    #tables.parameters.PYTABLES_SYS_ATTRS = False
+
 
 def import_scan(filename):
     """
@@ -243,6 +254,7 @@ def main():
             print("Output file will be rewritten")
 
     t0 = time.time()
+    Set_Table_Param()
     d = Import_and_Process_LC(infilename, outfile=outputfile, compress=compression, downsample=downSampling)
     elaps = time.time()-t0
     print('Processing took %.2f minutes'%(elaps/60))

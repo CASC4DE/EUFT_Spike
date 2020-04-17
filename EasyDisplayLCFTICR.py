@@ -28,6 +28,8 @@ import spike
 
 # %%
 import Tools.LCFTICR_INTER as LCI
+print('spike version:',spike.version.version)
+print('interface version: ',LCI.FI.version)
 
 # %%
 from importlib import reload  # the two following lines are debugging help
@@ -92,6 +94,9 @@ button will get the processed experiment and display it.
 Will compute the Peak list, according to the parameters define in the "Processing Parameters" pane.
 
 *This tool is not active and still in development*
+
+#### Exit
+Simply close the window to exist the program
 
 ## display
 Figures can be explored *(zoom, shift, resize, etc)* with the jupyter tools displayed vertically.
@@ -191,3 +196,7 @@ https://mzmine.github.io/
 - peak detection
 '''
 
+
+# %%
+print('spike version:',spike.version.version)
+print('interface version - ',LCI.FI.version)

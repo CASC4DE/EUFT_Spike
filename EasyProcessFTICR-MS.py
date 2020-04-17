@@ -74,6 +74,8 @@ These files use the standard
 
 Only files in the seafile deposit can be handled.
 
+Simply close the window to exist the program
+
 ## Standard Operation:
 #### Choose a file
 Only files in the seafile deposit can be handled.
@@ -97,6 +99,9 @@ Any previous processing will be lost
 #### Save
 <button class="p-Widget jupyter-widgets jupyter-button widget-button mod-success" >Save</button>
 stores a `.msh5` file into the initial `experiment.d` firectory
+
+#### Exit
+Simply close the window to exist the program
 
 ## Panes
 - raw fid: the transient, if loaded
@@ -145,6 +150,17 @@ accordion
 
 # %%
 a_FAIRE = """
+beta:
+- doc top niveau
+- page home
+- marge metadata
+- upload ,?
+- pp q plante ? (scr dump)
+- zf 2 et pp level 30 par défaut
+- ordre voilà antialphab
+- close to exit
+- "panels" / tabs ,
+
 to do:
 - export to mzml
 - peak list
@@ -153,3 +169,5 @@ to do:
 """
 
 # %%
+print('spike version:',spike.version.version)
+print('interface version - ',FI.version)
