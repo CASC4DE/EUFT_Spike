@@ -219,7 +219,7 @@ procparam_MS = {
         'auto':   'Automatically after Fourier-transform'
         },
     'peakpicking_todo': 'auto',
-    'peakpicking_noise_level': 30,
+    'peakpicking_noise_level': 3,
     'centroid': "Yes",
 }
 

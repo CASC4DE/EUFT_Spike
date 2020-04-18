@@ -31,13 +31,13 @@ import spike
 import Tools.FTICR_INTER as FI
 
 
-# %%
-# launch
-#display(Markdown('## ... program is Ready'))
-#I.hidecode(initial='show', message=False)
-from importlib import reload
-reload(FI)
-w = FI.IFTMS()
+# %% [markdown]
+# # launch
+# #display(Markdown('## ... program is Ready'))
+# #I.hidecode(initial='show', message=False)
+# from importlib import reload
+# reload(FI)
+# w = FI.IFTMS()
 
 # %% [markdown]
 # ---
@@ -151,8 +151,6 @@ accordion
 # %%
 a_FAIRE = """
 beta:
-- doc top niveau
-- page home
 - marge metadata
 - upload ,?
 - pp q plante ? (scr dump)

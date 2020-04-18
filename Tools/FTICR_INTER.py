@@ -77,7 +77,7 @@ class Dataproc:
         self.procparam = U.procparam_MS
         self.procparam["peakpicking_todo"] = "manual"
         self.procparam['zoom'] = None
-        self.procparam['peakpicking_noise_level'] = 10
+        self.procparam['peakpicking_noise_level'] = 30
         self.procparam['centroid'] = "No"
 
     def process(self):
@@ -267,7 +267,7 @@ class IFTMS(object):
     def save(self, e):
         "save 1D spectrum to msh5 file"
         self.wait()
-        audit = U.auditinitial(title="Save file", append=False)
+        audit = U.auditinitial(title="Save file", append=True)
         # find name
         fullpath = op.join(self.base,self.selected)
         # increment filename to find an available name
@@ -285,7 +285,7 @@ class IFTMS(object):
         data = self.datap.DATA
         compress = False
         if parameters['grass_noise_todo'] == 'storage':           # to do !
-            print("text", "grass noise removal","noise threshold", parameters['grass_noise_level'])
+#            print("text", "grass noise removal","noise threshold", parameters['grass_noise_level'])
             data.zeroing(parameters['grass_noise_level']*data.noise)
             data.eroding()
             compress = True
@@ -301,7 +301,7 @@ class IFTMS(object):
         self.datap.DATA.filename = expname
         with self.outinfo:
             display(Markdown("""# Save locally
- Data set saved to %s
+ Data set saved as "%s"
  """%(expname,)))
         self.done()
         with self.waitarea:
@@ -378,7 +378,7 @@ class IFTMS(object):
         
         chld.append( dropdown("peakpicking","manual","peakpicking todo") )
         
-        chld.append( widgets.FloatLogSlider(value=3,min=0,max=3,description='peakpicking noise level', layout=ly, style=style) )
+        chld.append( widgets.FloatLogSlider(value=10,min=0,max=3,description='peakpicking noise level', layout=ly, style=style) )
 
         chld.append( widgets.RadioButtons(options=['Yes','No'],value='Yes',description='centroid',layout=ly, style=style))
 
@@ -386,35 +386,6 @@ class IFTMS(object):
 
 
         self.form = widgets.VBox(chld)
-    def _paramform(self):
-        "draw the processing parameter form - Obsolete"
-        codes = {
-            'apod_todo' : 'apodisations',
-            'baseline_todo': 'baseline_correction',
-            'peakpicking_todo': 'peakpicking',
-            'grass_noise_todo': 'grass_noise'
-        }
-        codelist = tuple(codes.keys())
-        codelist
-        chld = []
-        ly = Layout(width='50%')
-        style = {'description_width': '30%'}
-        for k,v in U.procparam_MS.items():
-            if k in codelist:
-                if isinstance(U.procparam_MS[codes[k]][v], U.Apodisation):
-                    opt = U.procparam_MS[codes[k]].keys()
-                else:
-                    opt = [(v,k) for k,v in U.procparam_MS[codes[k]].items()]
-                chld.append( widgets.Dropdown(options=opt,value=v,description=k, layout=ly, style=style) )
-            else:
-                if isinstance(v, str):
-                    if v in ('Yes','No'):
-                        chld.append( widgets.RadioButtons(options=['Yes','No'],value=v,description=k,layout=ly, style=style) )
-                    else:
-                        chld.append( widgets.Text(value=v, description=k, layout=ly, style=style ) )
-                elif isinstance(v, int):
-                    chld.append( widgets.FloatText(value=v, description=k,layout=ly, style=style ) )
-        self.form = VBox(chld)
 
     # WARNING procparams have '_' in names while the form display with ' '
     def param2form(self, dico, verbose=DEBUG):

@@ -886,20 +886,19 @@ class MS2Dscene(object):
                 self.waitarea.clear_output(wait=True)
             return
         with self.out2D:
-            clear_output()
+            clear_output(wait=True)
             self.MR2D.show()
 #                display(self.MR2D.box)
 #                display(self.MR2D.sbox)
         with self.out1D:
-            clear_output()
+            clear_output(wait=True)
             self.lci = LC1D(self.MR2D, Debug=self.debug)
 #            self.MR2D.I1D()
         # with self.outpp2D:
         #     display(self.MR2D.box)  # copie of the main pane
         #     display(self.MR2D.sbox)
         with self.outinfo:
-            clear_output()
+            clear_output(wait=True)
             self.MR2D.report()
-            print()
         self.tabs.selected_index = 1
         self.done()

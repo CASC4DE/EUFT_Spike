@@ -55,7 +55,7 @@ def dodoc(md):
 doc = dodoc('''# DOCUMENTATION
 
 This program allows to analyse **LC-MS FTICR** data-sets, i.e. a series of MS spectra acquired during a chromatography run.
-The information id bi-dimensional, with one chromatographic axis and one MS axis.
+The information is bi-dimensional, with one chromatographic axis and one MS axis.
 
 It is based on the [Spike](https://forum.casc4de.eu/p/2-spike) processing program,
 the [scientific python](https://www.scipy.org/) language,
@@ -175,6 +175,7 @@ todo = '''# TODO
 ### importer
 - pb d'axe de la projection
 - doit et automation
+- pp !!!
 
 ### to come
 - changer le selecteur
