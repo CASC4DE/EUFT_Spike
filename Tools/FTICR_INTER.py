@@ -41,6 +41,10 @@ version = "1.0.0"
 # TOOLS FOR 1D FTICR
 
 def injectcss():
+    """inject css into the notebook
+    - HR
+    - buttons
+    """
     display(HTML('''
     <style>
     hr {height: 2px; border: 0;border-top: 1px solid #ccc;margin: 1em 0;padding: 0; }
@@ -53,22 +57,80 @@ def injectcss():
     </style>
     '''))
 
+from collections import namedtuple
+MSfile = namedtuple('MSfile',['fullpath', 'spath', 'ftype'])
+MSfile.__doc__ = "a micro class for FileChooser"
+# redefining __str__ for nicer display
+def msstr(msf):
+    return "%s \t \t %s"%(msf.ftype, msf.spath)
+MSfile.__str__ = msstr   
+
 class FileChooser(VBox):
-    """a simple chooser for Jupyter for selecting *.d directories"""
+    """a simple chooser for Jupyter for selecting *.d directories
+    This new version creates a list of tuple
+        (fullpath, spath ftype) where 
+            - fulpath is a pathlib.Path object with the path of the file
+            - spath
+            - ftype is a string either
+                'fid' 'ser' for raw data
+                'MS' 'LC-MS' or '2D-MS' for processed data
+    selected is the fullpath name of the selected one
+        fc = FileChooser()
+        open(fc.selected)
+    """
     def __init__(self, base='DATA', dotd=True, msh5=True):
         super().__init__()
+        self.base = base
         flist = []
         if dotd:
-            filelistraw = [str(i.relative_to(base)) for i in Path(base).glob('**/*.d')]
             flist.append('   --- raw ---')
-            flist += filelistraw
+            for i in Path(base).glob('**/*.d'):
+                if i.is_dir():
+                    ftype = self.filetype(i)
+                    flist.append(MSfile(i, i.relative_to(base), ftype)) 
         if msh5:
-            filelistproc = [str(i.relative_to(base)) for i in Path(base).glob('**/*.msh5')]
             flist.append('   --- processed ---')
-            flist += filelistproc
-        self.selec = widgets.Select(options=flist,layout={'width': 'max-content'})
+            for i in Path(base).glob('**/*.msh5'):
+                ftype = self.filetype(i)
+                flist.append(MSfile(i, i.relative_to(base), ftype)) 
+        self.selec = widgets.Select(options=flist, rows=min(8,len(flist)), layout={'width': 'max-content'})
         self.children  = [widgets.HTML('<b>Choose one experiment</b>'), self.selec ]
-
+    def filetype(self, path):
+        "returns filetype as a string"
+        if path.suffix == '.d':
+            if (path/'ser').exists():
+                toreturn = 'ser'
+            elif (path/'fid').exists():
+                toreturn = 'fid'
+            else:
+                toreturn = '???'
+        elif path.suffix == '.msh5':
+            d = FTICRData(name=str(path), mode='onfile')
+            if d.dim == 1:
+                toreturn = 'MS'
+            elif d.dim == 2:
+                try:
+                    pj = FTICRData(name=str(path), mode="onfile", group="projectionF2")
+                    pj.hdf5file.close()
+                    toreturn = 'LCMS'
+                except tables.NoSuchNodeError:
+                    toreturn = '2DMS'
+            else:
+                toreturn = '???'
+            d.hdf5file.close()
+        return toreturn
+    @property
+    def selected(self):
+        if isinstance(self.selec.value, str):
+            return 'None'
+        else:
+            return self.selec.value.fullpath
+    @property
+    def name(self):
+        if isinstance(self.selec.value, str):
+            return 'None'
+        else:
+            return self.selec.value.spath
 class Dataproc:
     "a class to hold a 1D data set and to process it"
     def __init__(self, data):
@@ -211,7 +273,10 @@ class IFTMS(object):
         self.wwait.close()
     @property
     def selected(self):
-        return self.filechooser.selec.value
+        return str(self.filechooser.selected)
+    @property
+    def title(self):
+        return str(self.filechooser.name)
 
     def load(self, e):
         "load 1D data-set and display"
@@ -221,7 +286,7 @@ class IFTMS(object):
         else:
             self.loadbruker()
     def loadspike(self):
-        fullpath = op.join(self.base,self.selected)
+        fullpath = self.selected
         try:
             DATA = FTICRData(name=fullpath)
         except:
@@ -239,23 +304,23 @@ class IFTMS(object):
         self.showinfo()
         self.out1D.clear_output()
         with self.out1D:
-            DATA.display(title=self.selected, new_fig={'figsize':(10,5)})
+            DATA.display(title=self.title, new_fig={'figsize':(10,5)})
         self.tabs.selected_index = 1
 
     def loadbruker(self):
-        fullpath = op.join(self.base,self.selected)
+        fullpath = self.selected
         try:
             data = BrukerMS.Import_1D(fullpath)
         except:
             with self.waitarea:
-                print('Error while loading',self.selected)
+                print('Error while loading -',self.selected)
                 self.waitarea.clear_output(wait=True)
             return
         data.filename = self.selected
         data.fullpath = fullpath
         data.set_unit('sec')
         with self.fid:
-            data.display(title=self.selected,new_fig={'figsize':(10,5)})
+            data.display(title=self.title,new_fig={'figsize':(10,5)})
         self.datap = Dataproc(data)
         self.showinfo()
         self.param2form(self.datap.procparam)
@@ -322,7 +387,7 @@ class IFTMS(object):
         DATA = self.datap.DATA
         ti = self.selected
         with self.out1D:
-            DATA.display(title=self.selected, new_fig={'figsize':(10,5)})
+            DATA.display(title=self.title, new_fig={'figsize':(10,5)})
         self.showinfo()
         self.tabs.selected_index = 1
         self.done()

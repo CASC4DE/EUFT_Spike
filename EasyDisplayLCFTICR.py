@@ -35,13 +35,6 @@ print('interface version: ',LCI.FI.version)
 from importlib import reload  # the two following lines are debugging help
 reload(LCI)                   # and can be removed safely when in production
 mr = LCI.MS2Dscene(Debug=False)
-#ms = LCI.MR_interact('FTICR_DATA/output.msh5', report=True, show=False, figsize=(8,6))
-
-# %% [raw]
-# from importlib import reload  # the two following lines are debugging help
-# reload(LCI)                   # and can be removed safely when in production
-# LCI.FI.injectcss()
-# m1 = LCI.LC1D(ms,show=True)
 
 # %%
 # improve display of docu.
@@ -105,18 +98,18 @@ The drawing zone can be resized using the little grey triangle on the lower-righ
 
 Figures can also be saved as a `png` graphic file.
 
-## Panes
+## Tab Panels
 #### 1D Extraction
 Extract of the experiment can be displayed here, 
 
 - On the **MS** line click on 
 <button class="p-Widget jupyter-widgets jupyter-button widget-button" >get</button>
 to get a MS spectra extracted at the retention time
-    given by the slider - labelled in minutes *(you can also type the value)*
+    given by the slider - labelled in minutes *(you can also type directly the value)*.
 - On the **LC** line click on
 <button class="p-Widget jupyter-widgets jupyter-button widget-button" >get</button>
-to get a chromatogram of the *m/z* peak location given by the slider *(you can also type the value)*
-    - if needed the chromatogram can be smoothed for better looking.
+to get a chromatogram of the *m/z* peak location given by the slider *(you can also type directly the value)*.
+If needed the chromatogram can be smoothed for better looking using a Savitsky-Golay method - 0 means no smoothing.
 - both extractions can be summed other a small region around the given location - which width is given by the second slider.
 
 #### 2D spectrum:

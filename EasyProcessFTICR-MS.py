@@ -31,13 +31,13 @@ import spike
 import Tools.FTICR_INTER as FI
 
 
-# %% [markdown]
-# # launch
-# #display(Markdown('## ... program is Ready'))
-# #I.hidecode(initial='show', message=False)
-# from importlib import reload
-# reload(FI)
-# w = FI.IFTMS()
+# %%
+# launch
+#display(Markdown('## ... program is Ready'))
+#I.hidecode(initial='show', message=False)
+from importlib import reload
+reload(FI)
+w = FI.IFTMS()
 
 # %% [markdown]
 # ---
@@ -89,15 +89,15 @@ button will get the transient of the  selected experiment and display it.
 Any previous processing will be lost
 
 #### Process
-<button class="p-Widget jupyter-widgets jupyter-button widget-button mod-success" >Process</button>
+<button class="p-Widget jupyter-widgets jupyter-button widget-button" >Process</button>
  computes the Spectrum, according to the parameters define in the `Processing Parameters` pane
 
 #### Peak Pick
-<button class="p-Widget jupyter-widgets jupyter-button widget-button mod-success" >Peak Pick</button>
+<button class="p-Widget jupyter-widgets jupyter-button widget-button" >Peak Pick</button>
  computes the Peak list, according to the parameters define in the `Processing Parameters` pane
 
 #### Save
-<button class="p-Widget jupyter-widgets jupyter-button widget-button mod-success" >Save</button>
+<button class="p-Widget jupyter-widgets jupyter-button widget-button" >Save</button>
 stores a `.msh5` file into the initial `experiment.d` firectory
 
 #### Exit

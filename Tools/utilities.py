@@ -306,15 +306,18 @@ def peakpick_ms1d(data, parameters):
     data.set_unit('m/z').peakpick(autothresh=float(parameters['peakpicking_noise_level']), verbose=False, zoom=parameters['zoom'])
     if parameters['centroid'] == 'Yes':
         data.centroid()
-    fname = op.join( data.fullpath,'peaklist.html')
-    print(fname)
-    with open(fname,'w') as F:
+    if op.isdir(data.fullpath):     # typically *.d
+        fnameh = op.join( data.fullpath,'peaklist.html')
+        fnamec = op.join( data.fullpath,'peaklist.csv')
+    else:                           # typically *.msh5
+        fnameh = op.splitext(data.fullpath)[0] + '_peaklist.html'
+        fnamec = op.splitext(data.fullpath)[0] + '_peaklist.csv'
+    print(fnameh)
+    with open(fnameh,'w') as F:
         F.write( data.pk2pandas(full=False).to_html() )
-    fname = op.join( data.fullpath,'peaklist.csv')
-    print(fname)
-    with open( fname,'w') as F:
+    with open( fnamec,'w') as F:
         F.write( data.pk2pandas(full=False).to_csv() )
-    path_list = fname.split(os.sep)
+    path_list = fnamec.split(os.sep)
     audittrail( audit, "text", "Peak-Picking",
                    "threshold above noise level", parameters['peakpicking_noise_level'],
                    "zoom", parameters['zoom'],

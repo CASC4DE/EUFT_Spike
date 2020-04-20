@@ -438,7 +438,7 @@ class LC1D(VBox):
 
         self.LCspread = widgets.FloatSlider(min=LCstep, max=5.0, step=LCstep,
             description='±', style=dstyle,
-            layout=Layout(flex='2'))
+            layout=Layout(flex='3'))
         # MS
         self.bb('bLC', 'get', self.computeLC,
             layout=Layout(flex='0.5',width='60px'))
@@ -456,31 +456,30 @@ class LC1D(VBox):
         self.msread.observe(on_msread)
         self.MSpos.observe(on_mspos)
         self.MSspread = widgets.FloatLogSlider(value=0.01, min=-3, max=0,
-            description='±',style=dstyle, disabled = True,
-            layout=Layout(flex='2'))
+            description='±',style=dstyle, disabled = False,
+            layout=Layout(flex='3'))
 
-#        self.smooth = widgets.ToggleButton(value=False)
-        self.smooth = widgets.Dropdown(options=['Yes','No'],value='No',
-            description='smoothing:',
-            layout=Layout(flex='1'))
-        self.SMstrength = widgets.IntSlider(value=5, min=1, max=10,disabled=True,
+#        self.smooth = widgets.Dropdown(options=['Yes','No'],value='No',
+#            description='smoothing:',
+#            layout=Layout(flex='1'))
+        self.SMstrength = widgets.IntSlider(description='smoothing:',value=5, min=0, max=10,disabled=False,
             continuous_update=HEAVY, layout=Layout(flex='2'))
-        def on_sm_change(e):
-            if self.smooth.value == 'No':
-                self.SMstrength.disabled = True
-            else:
-                self.SMstrength.disabled = False
-            self.displayLC()
-        self.smooth.observe(on_sm_change)
+        # def on_sm_change(e):
+        #     if self.smooth.value == 'No':
+        #         self.SMstrength.disabled = True
+        #     else:
+        #         self.SMstrength.disabled = False
+        #     self.displayLC()
+#        self.smooth.observe(on_sm_change)
         def on_smst_change(e):
             self.displayLC()
         self.SMstrength.observe(on_smst_change)
 
         info1 = widgets.HTML('<center>Action</center>', layout=Layout(flex='0.5'))
         info2 = widgets.HTML('<center>Coordinates</center>', layout=Layout(flex='4'))
-        info3 = widgets.HTML('<center>Integration Width</center>', layout=Layout(flex='2'))
-        info4 = widgets.HTML('<center>Smoothing the chromatogram</center>', layout=Layout(flex='3'))
-        space1 = widgets.HTML('&nbsp;', layout=Layout(flex='3'))
+        info3 = widgets.HTML('<center>Integration Width</center>', layout=Layout(flex='3'))
+        info4 = widgets.HTML('<center>Smoothing the chromatogram</center>', layout=Layout(flex='2'))
+        space1 = widgets.HTML('&nbsp;', layout=Layout(flex='2'))
         labellc = widgets.HTML('<center><b>LC dimension</b></center>',layout=Layout(flex='1', text_align='right'))
         labelms = widgets.HTML('<center><b>MS dimension</b></center>',layout=Layout(flex='1'))
         # return VBox([   HBox([info1, info2, info3, info4],
@@ -492,7 +491,7 @@ class LC1D(VBox):
         return VBox([   HBox([info2, info3, info4, info1],
                                 layout=Layout(justify_content="space-around")),
                         HBox([labelms, self.lcread, self.LCpos, self.LCspread, space1, self.bMS]),
-                        HBox([labellc, self.msread, self.MSpos, self.MSspread,self.smooth, self.SMstrength,self.bLC]),
+                        HBox([labellc, self.msread, self.MSpos, self.MSspread, self.SMstrength,self.bLC]),
                         self.fig.canvas],
                     layout=Layout(width='100%',border='solid 2px',))
 
@@ -542,7 +541,7 @@ class LC1D(VBox):
             d = None
         self.ax.clear()
         if d is not None:
-            if self.smooth.value == 'Yes':
+            if self.SMstrength.value>0: #self.smooth.value == 'Yes':
                 d.eroding().sg(21,11-self.SMstrength.value).plus()
             d.display(figure=self.ax)
         else:
@@ -868,13 +867,15 @@ class MS2Dscene(object):
 
     @property
     def selected(self):
-        return self.filechooser.selec.value
+        return str(self.filechooser.selected)
+    def title(self):
+        return str(self.filechooser.name)
 
     def load2D(self, e):
         "create 2D object and display"
         self.wait()
 #        self.outpp2D.clear_output(wait=True)
-        fullpath = op.join(self.base,self.selected) 
+        fullpath = self.selected
         try:
             self.MR2D = MR_interact(fullpath, 
                 report=False, show=False, Debug=self.debug)
