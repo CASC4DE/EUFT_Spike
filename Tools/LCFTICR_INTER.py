@@ -477,7 +477,7 @@ class LC1D(VBox):
 
         info1 = widgets.HTML('<center>Action</center>', layout=Layout(flex='0.5'))
         info2 = widgets.HTML('<center>Coordinates</center>', layout=Layout(flex='4'))
-        info3 = widgets.HTML('<center>Integration Width</center>', layout=Layout(flex='3'))
+        info3 = widgets.HTML('<center>Take mean over</center>', layout=Layout(flex='3'))
         info4 = widgets.HTML('<center>Smoothing the chromatogram</center>', layout=Layout(flex='2'))
         space1 = widgets.HTML('&nbsp;', layout=Layout(flex='2'))
         labellc = widgets.HTML('<center><b>LC dimension</b></center>',layout=Layout(flex='1', text_align='right'))
@@ -817,11 +817,11 @@ class MS2Dscene(object):
         with self.peaklist:
             display(HTML("<br><br><h3><i><center>This part is still in development</center></i></h3>"))
 
-        # form
-        self.outform = Output()  # the area where processing parameters are displayed
-        with self.outform:
-            self.paramform()
-            display(self.form)
+        # # form
+        # self.outform = Output()  # the area where processing parameters are displayed
+        # with self.outform:
+        #     self.paramform()
+        #     display(self.form)
 
         # Info
         self.outinfo = Output()  # the area where info is shown
@@ -835,12 +835,12 @@ class MS2Dscene(object):
 
         #  tabs
         self.tabs = widgets.Tab()
-        self.tabs.children = [ self.out1D, self.out2D, self.peaklist, self.outform, self.outinfo ]
+        self.tabs.children = [ self.out1D, self.out2D, self.peaklist, self.outinfo ]
         self.tabs.set_title(0, '1D Extraction')
         self.tabs.set_title(1, '2D Display')
         self.tabs.set_title(2, 'Peak List')
-        self.tabs.set_title(3, 'Processing Parameters')
-        self.tabs.set_title(4, 'Info')
+        # self.tabs.set_title(3, 'Processing Parameters')
+        self.tabs.set_title(3, 'Info')
 
 #        self.tabs = VBox([ self.out2D, self.outpp2D, self.out1D, self.outinfo ])
         self.box = VBox([   self.header,

@@ -232,9 +232,11 @@ def main():
     parser.add_argument('importBrukfolder', help='input folder that contains the sample to process')
     parser.add_argument('outputfile', help='output file in msh5 format')
     parser.add_argument('--doc', action='store_true', help="print a description of the program")
-    parser.add_argument('-c', '--compress', default=False, help="option to apply file compression, default is False")
-    parser.add_argument('-ds', '--downsampling', default=False, help="option to apply downsampling to the raw data to improve compression rate (but takes time), default is False")
-    parser.add_argument('-e', '--erase', default=False, help="creates a new output file if it already exists, default is False")
+    parser.add_argument('-c', '--compress', action='store_true', help="option to apply file compression, default is False")
+    parser.add_argument('-ds', '--downsampling', action='store_true', help="option to apply downsampling to improve access speed, default is False")
+    parser.add_argument('-e', '--erase', action='store_true', help="creates a new output file if it already exists, default is False")
+    parser.add_argument('-n', '--dry',  action='store_true', help="list parameter and do not run the Import")
+
     args = parser.parse_args()
 
     if args.doc:
@@ -247,6 +249,13 @@ def main():
     downSampling = args.downsampling
     erase = args.erase
 
+    if args.dry:
+        print(sys.argv[0],' dry run:')
+        print('------------------------')
+        for nm in ("infilename", "outputfile", "compression", "downSampling", "erase"):
+            print(nm, getattr(args,nm))
+        print('------------------------')
+        sys.exit(0)
     if os.path.isfile(outputfile):
         if erase == False:
             sys.exit("File already exists, type a different output file name or erase the existing one")
