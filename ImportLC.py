@@ -231,6 +231,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('importBrukfolder', help='input folder that contains the sample to process')
     parser.add_argument('outputfile', help='output file in msh5 format')
+    parser.add_argument('-d', '--paramfile', help='optional parameter file in mscf format')
     parser.add_argument('--doc', action='store_true', help="print a description of the program")
     parser.add_argument('-c', '--compress', action='store_true', help="option to apply file compression, default is False")
     parser.add_argument('-ds', '--downsampling', action='store_true', help="option to apply downsampling to improve access speed, default is False")
@@ -243,16 +244,19 @@ def main():
         print(__doc__)
         sys.exit(0)
 
-    infilename = args.importBrukfolder
-    outputfile = args.outputfile
-    compression = args.compress
-    downSampling = args.downsampling
-    erase = args.erase
+    if args.paramfile is not None:
+        print("should read", args.paramfile )
+    else:
+        infilename = args.importBrukfolder
+        outputfile = args.outputfile
+        compression = args.compress
+        downSampling = args.downsampling
+        erase = args.erase
 
     if args.dry:
         print(sys.argv[0],' dry run:')
         print('------------------------')
-        for nm in ("infilename", "outputfile", "compression", "downSampling", "erase"):
+        for nm in ("infilename", "outputfile", "compression", "downSampling", "erase", "paramfile"):
             print(nm, getattr(args,nm))
         print('------------------------')
         sys.exit(0)

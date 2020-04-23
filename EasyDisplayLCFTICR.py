@@ -28,8 +28,8 @@ import spike
 
 # %%
 import Tools.LCFTICR_INTER as LCI
-print('spike version:',spike.version.version)
-print('interface version: ',LCI.FI.version)
+#print('spike version:',spike.version.version)
+#print('interface version: ',LCI.FI.version)
 
 # %%
 from importlib import reload  # the two following lines are debugging help
@@ -92,11 +92,22 @@ Will compute the Peak list, according to the parameters define in the "Processin
 Simply close the window to exist the program
 
 ## display
-Figures can be explored *(zoom, shift, resize, etc)* with the jupyter tools displayed vertically.
+## display
+Figures can be interactively explored with the jupyter tools displayed  on the side of the dataset.
+
+- zoom with <button class="jupyter-matplotlib-button jupyter-widgets jupyter-button" href="#" title="Zoom to rectangle" style="outline: currentcolor none medium;"><i class="center fa fa-square-o"></i></button>
+- shift and resize
+<button class="jupyter-matplotlib-button jupyter-widgets jupyter-button" href="#" title="Pan axes with left mouse, zoom with right" style="outline: currentcolor none medium;"><i class="center fa fa-arrows"></i></button>
+ (with left and right click)
+- <button class="jupyter-matplotlib-button jupyter-widgets jupyter-button" href="#" title="Back to previous view" style="outline: currentcolor none medium;"><i class="center fa fa-arrow-left"></i></button>
+and
+<button class="jupyter-matplotlib-button jupyter-widgets jupyter-button" href="#" title="Forward to next view" style="outline: currentcolor none medium;"><i class="center fa fa-arrow-right"></i></button>
+allow to navigate in the zoom history
 
 The drawing zone can be resized using the little grey triangle on the lower-right corner
 
-Figures can also be saved as a `png` graphic file.
+Figures can also be saved as a `png` graphic file with
+<button class="jupyter-matplotlib-button jupyter-widgets jupyter-button" href="#" title="Download plot" style="outline: currentcolor none medium;"><i class="center fa fa-floppy-o"></i></button>
 
 ## Tab Panels
 #### 1D Extraction

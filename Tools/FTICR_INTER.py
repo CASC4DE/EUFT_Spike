@@ -84,10 +84,15 @@ class FileChooser(VBox):
         flist = []
         if dotd:
             flist.append('   --- raw ---')
-            for i in Path(base).glob('**/*.d'):
+            for i in Path(base).glob('**/*.d'):     # Apex and Solarix
                 if i.is_dir():
                     ftype = self.filetype(i)
                     flist.append(MSfile(i, i.relative_to(base), ftype)) 
+            for i in Path(base).glob('**/acqus'):   # "Apex0"
+                if (i.parent/'fid').exists():
+                    ftype = self.filetype(i)
+                    flist.append(MSfile((i.parent/'fid'), i.parent.relative_to(base), ftype)) 
+
         if msh5:
             flist.append('   --- processed ---')
             for i in Path(base).glob('**/*.msh5'):
@@ -118,6 +123,10 @@ class FileChooser(VBox):
             else:
                 toreturn = '???'
             d.hdf5file.close()
+        elif path.name == 'acqus':
+            toreturn = 'FID'
+        else:
+            toreturn = '???'            
         return toreturn
     @property
     def selected(self):
@@ -406,6 +415,7 @@ class IFTMS(object):
             return
         self.wait()
         self.peaklist.clear_output(wait=True)
+        self.form2param()
         self.datap.peakpick()
         with self.out1D:
             self.datap.DATA.display_peaks(peak_label=True ,NbMaxPeaks=self.MAX_DISP_PEAKS)
