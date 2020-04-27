@@ -90,11 +90,11 @@ Any previous processing will be lost
 
 #### Process
 <button class="p-Widget jupyter-widgets jupyter-button widget-button" >Process</button>
- computes the Spectrum, according to the parameters define in the `Processing Parameters` pane
+ computes the Spectrum, according to the parameters define in the `Processing Parameters` panel
 
 #### Peak Pick
 <button class="p-Widget jupyter-widgets jupyter-button widget-button" >Peak Pick</button>
- computes the Peak list, according to the parameters define in the `Processing Parameters` pane
+ computes the Peak list, according to the parameters define in the `Processing Parameters` panel
 
 #### Save
 <button class="p-Widget jupyter-widgets jupyter-button widget-button" >Save</button>
@@ -105,7 +105,7 @@ Simply close the window to exist the program
 
 ## Tab Panels
 - raw fid: the transient, if loaded
-- spectrum: the processed spectrum, if computed
+- Spectrum: the processed spectrum, if computed
 - Peak list: the peak list, if computed - can be exported in csv format
 - Processing Parameters: all the parameters used for the processing: 
 - Info: details on the experiment and Processing audit trails

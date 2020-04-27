@@ -306,13 +306,21 @@ def peakpick_ms1d(data, parameters):
     data.set_unit('m/z').peakpick(autothresh=float(parameters['peakpicking_noise_level']), verbose=False, zoom=parameters['zoom'])
     if parameters['centroid'] == 'Yes':
         data.centroid()
+    # compute unique file name 
     if op.isdir(data.fullpath):     # typically *.d
-        fnameh = op.join( data.fullpath,'peaklist.html')
-        fnamec = op.join( data.fullpath,'peaklist.csv')
+        fnamehi = op.join( data.fullpath,'peaklist_%d.html')
+        fnameci = op.join( data.fullpath,'peaklist_%d.csv')
     else:                           # typically *.msh5
-        fnameh = op.splitext(data.fullpath)[0] + '_peaklist.html'
-        fnamec = op.splitext(data.fullpath)[0] + '_peaklist.csv'
+        fnamehi = op.splitext(data.fullpath)[0] + '_peaklist_%d.html'
+        fnameci = op.splitext(data.fullpath)[0] + '_peaklist_%d.csv'
+    # find a slot
+    i = 1
+    while op.exists(fnamehi%i) or op.exists(fnameci%i):
+        i += 1
+    fnameh = fnamehi%i
+    fnamec = fnameci%i
     print(fnameh)
+    # create files
     with open(fnameh,'w') as F:
         F.write( data.pk2pandas(full=False).to_html() )
     with open( fnamec,'w') as F:

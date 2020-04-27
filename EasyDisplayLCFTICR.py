@@ -163,6 +163,7 @@ expect improvements, as certain parts are still in development
 - precise *m/z* calibration
 - better user interaction
 - more efficient peak-picking
+- export and comparison of spectra
 - export to mzml and csv
 - 3D view of the experiment
 - ...

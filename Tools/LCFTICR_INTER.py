@@ -507,6 +507,7 @@ class LC1D(VBox):
             for i in range(istart+1,iend+1):
                 lc += self.data.col(i)
             lc.mult(1/(iend-istart))  # take the mean
+        lc.title = "Chrom. Profile extracted from %.4f to %.4f m/z"%(start,end)
         self.lc = lc
         self.displayLC()
         self.done()
@@ -523,6 +524,7 @@ class LC1D(VBox):
             for i in range(istart+1,iend+1):
                 ms += self.data.row(i)
             ms.mult(1/(iend-istart))  # take the mean
+        ms.title = "MS Spectrum extracted from %.2f to %.2f minute"%(start,end)
         self.ms = ms
         self.displayMS()
         self.done()
@@ -543,7 +545,7 @@ class LC1D(VBox):
         if d is not None:
             if self.SMstrength.value>0: #self.smooth.value == 'Yes':
                 d.eroding().sg(21,11-self.SMstrength.value).plus()
-            d.display(figure=self.ax)
+            d.display(figure=self.ax, title=self.lc.title)
         else:
             display(HTML("<br><br><h3><i><center>No Data</center></i></h3>"))
 
@@ -555,7 +557,7 @@ class LC1D(VBox):
             d = None
         self.ax.clear()
         if d is not None:
-            d.display(figure=self.ax)
+            d.display(figure=self.ax, title=self.ms.title)
         else:
             display(HTML("<br><br><h3><i><center>No Data</center></i></h3>"))
 
@@ -874,6 +876,8 @@ class MS2Dscene(object):
     def load2D(self, e):
         "create 2D object and display"
         self.wait()
+        with self.waitarea:
+            print('Please wait while loading...')
 #        self.outpp2D.clear_output(wait=True)
         fullpath = self.selected
         try:
@@ -903,3 +907,4 @@ class MS2Dscene(object):
             self.MR2D.report()
         self.tabs.selected_index = 1
         self.done()
+        self.waitarea.clear_output()

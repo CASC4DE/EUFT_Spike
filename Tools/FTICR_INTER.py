@@ -13,6 +13,8 @@ and the notebook to be opened with %matplotlib widget
 """
 import os.path as op
 from pathlib import Path
+import traceback
+import subprocess
 import tables
 import matplotlib.pyplot as plt
 from ipywidgets import interact, fixed, HBox, VBox, GridBox, Label, Layout, Output, Button
@@ -233,7 +235,7 @@ class IFTMS(object):
         self.tabs = widgets.Tab()
         self.tabs.children = [ self.fid, self.out1D, self.peaklist, self.outform, self.outinfo ]
         self.tabs.set_title(0, 'raw fid')
-        self.tabs.set_title(1, 'spectrum')
+        self.tabs.set_title(1, 'Spectrum')
         self.tabs.set_title(2, 'Peak List')
         self.tabs.set_title(3, 'Processing Parameters')
         self.tabs.set_title(4, 'Info')
@@ -299,6 +301,7 @@ class IFTMS(object):
         try:
             DATA = FTICRData(name=fullpath)
         except:
+            self.waitarea.clear_output(wait=True)
             with self.waitarea:
                 print('Error while loading',self.selected)
                 self.waitarea.clear_output(wait=True)
@@ -321,6 +324,7 @@ class IFTMS(object):
         try:
             data = BrukerMS.Import_1D(fullpath)
         except:
+            self.waitarea.clear_output(wait=True)
             with self.waitarea:
                 print('Error while loading -',self.selected)
                 self.waitarea.clear_output(wait=True)
@@ -343,7 +347,7 @@ class IFTMS(object):
         self.wait()
         audit = U.auditinitial(title="Save file", append=True)
         # find name
-        fullpath = op.join(self.base,self.selected)
+        fullpath = self.selected
         # increment filename to find an available name
         i = 1
         ok = False
@@ -368,11 +372,19 @@ class IFTMS(object):
         try:
             self.datap.DATA.save_msh5(expname, compressed=compress)
         except:
+            self.waitarea.clear_output(wait=True)
             with self.waitarea:
                 print('Error while saving to file',self.selected)
                 self.waitarea.clear_output(wait=True)
+            with self.outinfo:
+                traceback.print_exc()
             return
         self.datap.DATA.filename = expname
+        # copy audit_trail.txt
+        pexp = Path(expname)
+        destination = str(pexp.with_suffix(''))+'_audit.txt'
+        subprocess.run(["mv", "audit_trail.txt", destination])
+
         with self.outinfo:
             display(Markdown("""# Save locally
  Data set saved as "%s"

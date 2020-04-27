@@ -57,7 +57,7 @@ a.anchor-link {
 
 <div id="logos">
   <a href="http://www.eu-fticr-ms.eu/"><img id='logoEU' src="{{resources.base_url}}voila/static/logo_EU.png" alt="Logo EU-FTICR-MS"></a>
-  <h2>An environment to process, analyze and display FTICR-MS data</h2>
+  <h2>Remotely process, analyze and display FTICR-MS data</h2>
   <div id='logoC4' >
     <p>brought to you by:</p>
     <a href="http://www.casc4de.eu"><img src="{{resources.base_url}}voila/static/casc4de_logo_header.png" alt="Logo casc4de"></a>

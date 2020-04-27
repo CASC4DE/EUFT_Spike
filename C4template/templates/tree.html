@@ -65,7 +65,7 @@
 {% block body %}
 <div id="logos">
   <a href="http://www.eu-fticr-ms.eu/"><img id='logoEU' src="{{base_url}}voila/static/logo_EU.png" alt="Logo EU-FTICR-MS"></a>
-  <h2>An environment to process, analyze and display FTICR-MS data</h2>
+  <h2>Remotely process, analyze and display FTICR-MS data</h2>
   <div id='logoC4' >
     <p>brought to you by:</p>
     <a href="http://www.casc4de.eu"><img src="{{base_url}}voila/static/casc4de_logo_header.png" alt="Logo casc4de"></a>
@@ -83,14 +83,14 @@
     {% endif %}
 
     {% for content in contents.content %}
-      {% if content.type in ['notebook', 'file'] %}
+      {% if content.type in ['notebook'] %}
         <li><a href="{{ base_url }}voila/render/{{ content.path }}"><i class="fa fa-book"></i>{{content.name}}</a>
         {% if 'LC' in content.name %}
           &nbsp;  &nbsp; for LC-MS experiments
         {% elif '2D' in content.name %}
           &nbsp; for 2D MS experiments <i>- still in development -</i>
         {% elif 'Process' in content.name %}
-          &nbsp; for simple MS experiments
+          &nbsp; for direct injection MS experiments
         {% endif %}
       </li>
       {% endif %}
