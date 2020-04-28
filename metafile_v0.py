@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
--*- coding: utf-8 -*-
 """
 This programs goes throught a directory tree and adds a _vo metafile to the data-set lacking one
 """
 
-import os
+import os, sys
+import json
 import numpy as np
-import spike
-from spike.File import Solarix, Apex
 from scipy.constants import N_A as Avogadro
 from scipy.constants import e as electron
 from dateutil.parser import parse
@@ -17,8 +15,8 @@ from datetime import datetime
 from pathlib import Path
 
 
-# +
 DEBUG = False
+NO_ACTION = False
 
 def metaname(foldname):
     "generate metafile filename from .d filename"
@@ -40,30 +38,47 @@ def generate_metafile(bruker_dir, jsonfile=None):
     """
     reads a *.d Bruker FTICR dataset and generate a json file
     """
-    dico = generate_dico(bruker_dir)
+    try:
+        dico = generate_dico(bruker_dir)
+    except:
+        print('**** Action failed on ', bruker_dir)
+        dico = None
 
     if jsonfile is None:
         jsonfile = metaname(bruker_dir)
 
-    if DEBUG:
+    if DEBUG or NO_ACTION:
         print('output file is:',jsonfile)
+        print(json.dumps(dico,indent=2))
 
     # export to json
-    with open(jsonfile, 'w') as outfile:  
-        json.dump(dico, outfile, indent=2)
-
-
-# -
+    if not NO_ACTION:
+        if dico is not None:
+            with open(jsonfile, 'w') as outfile:  
+                json.dump(dico, outfile, indent=2)
 
 def generate_dico(bruker_dir):
     """
     reads a *.d Bruker FTICR dataset and generate a dictionary
     """
     # get filenames
+    from spike.File import Solarix, Apex, Apex0
     param_file = find_method(bruker_dir)
 
     # read all params
-    params = Apex.read_param(str(param_file))
+    if param_file is not None:
+        params = Apex.read_param(str(param_file))
+    elif (bruker_dir/'acqus').exists():    # Old format !
+        param_file = bruker_dir/'acqus'
+        oldparams = Apex0.read_param(str(param_file))
+        print('OLD Parameter file format in ',bruker_dir)
+        params = { }
+        for k in ('EXC_hi', 'EXC_low', 'SW_h', 'TD', 'ML1', 'ML2', 'ML3', 'PULPROG'):
+            params[k] = oldparams['$'+k]
+        params['CLDATE'] = oldparams['$AQ_DATE'][1:-1]
+        if DEBUG: print(params)
+    else:
+        raise Exception('No parameter found')
 
     # determine file type
     with open(param_file) as f: 
@@ -90,18 +105,25 @@ def generate_dico(bruker_dir):
     reduced_params['SpectralWidth'] = params['SW_h']
     reduced_params['AcqSize'] =  params['TD']
     reduced_params['CalibrationA'] = params['ML1']
-    reduced_params['CalibrationB'] = params['ML1']
-    reduced_params['CalibrationC'] = params['ML1']
+    reduced_params['CalibrationB'] = params['ML2']
+    reduced_params['CalibrationC'] = params['ML3']
     reduced_params['PulseProgam'] = params['PULPROG']
 
     reduced_params['MagneticB0'] = str(round(float(params['ML1'])*2*np.pi/(electron*Avogadro)*1E-3,1))
     if SpectrometerType == "Solarix":
-        with open(os.path.join(os.path.dirname(param_file),"ExciteSweep")) as f: 
-            lines = f.readlines()
-        NB_step = len(lines[6:])
-        reduced_params['ExcNumberSteps'] = str(NB_step)
-        reduced_params['ExcSweepFirst'] = str(lines[6]).strip('\n')
-        reduced_params['ExcSweepLast'] = str(lines[len(lines)-1]).strip('\n')
+        excfile = param_file.parent/"ExciteSweep"
+        if DEBUG: print(excfile)
+        if excfile.exists():
+            with open(excfile,'r') as f: 
+                lines = f.readlines()
+            NB_step = len(lines[6:])
+            reduced_params['ExcNumberSteps'] = str(NB_step)
+            reduced_params['ExcSweepFirst'] = str(lines[6]).strip('\n')
+            reduced_params['ExcSweepLast'] = str(lines[len(lines)-1]).strip('\n')
+        else:
+            reduced_params['ExcNumberSteps'] = "NotDetermined"
+            reduced_params['ExcSweepFirst'] = "NotDetermined"
+            reduced_params['ExcSweepLast'] = "NotDetermined"
     if DEBUG: print("Loaded parameters are:", reduced_params)
     return reduced_params
 
@@ -116,16 +138,23 @@ def all_files(basedir):
             count += 1
     print ('generated %d meta files'%count)
 
+def main():
+    import argparse
+    global DEBUG
+    global NO_ACTION
 
-all_files('/DATA/DATA/FT-ICR/M.Witt/Data for Marc Andre Delsuc April 2019/Ubiquitin')
+    parser = argparse.ArgumentParser(description='Create missing FTICR metafiles.')
+    parser.add_argument('base_directory', help='The base dir to be analysed')
+    parser.add_argument('-n', '--no_action', action='store_true', help='prints but does not generates')
+    parser.add_argument('-d', '--debug', action='store_true', help='print debugging messages')
 
-BD = "/DATA/DATA/FT-ICR/M.Witt/Data for Marc Andre Delsuc April 2019/Ubiquitin/Ubiquitin CID_000001.d"
-metaname(BD), Path(BD).name
+    args = parser.parse_args()
+    if args.debug:
+        DEBUG = True
+    if args.no_action:
+        NO_ACTION = True
 
-list(Path(BD).glob('*.m/*.method'))
+    all_files(args.base_directory)
 
-Path(BD).parent
-
-os.path.splitext(BD)
-
-
+if __name__ == '__main__':
+    sys.exit(main())
