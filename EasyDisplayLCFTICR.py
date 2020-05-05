@@ -45,6 +45,7 @@ def dodoc(md):
     with out:
         display(Markdown(md))
     return out
+
 doc = dodoc('''# DOCUMENTATION
 
 This program allows to analyse **LC-MS FTICR** data-sets, i.e. a series of MS spectra acquired during a chromatography run.
@@ -178,19 +179,19 @@ accordion
 # %%
 todo = '''# TODO
 ### importer
+- acces au TIC
 - pb d'axe de la projection
 - doit et automation
 - pp !!!
+- sauver les 1D
 
 ### to come
-- changer le selecteur
 - changer l'affichage
     - LC horiz ?
     - 3D ?
 - extraction of 1D 
     - titre Tic
     - Pmax ?
-    - extraction - case editable pour les valeurs
     - multimanipe
     - affichage courbe / zones colorées
 - NO DATA qui reste

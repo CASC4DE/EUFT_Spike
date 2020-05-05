@@ -5,18 +5,16 @@ processing is done on the fly
 It creates and returns a HDF5 file containing the data-set
 """
 import sys
-
+import os
+import math
+import array
+import numpy as np
 from xml.etree import cElementTree as ET
 
-from spike.File.Solarix import *
-from spike.NPKData import TimeAxis
-from spike.File import HDF5File as hf
-from spike.util import progressbar as pg
-from spike.util import widgets
-from spike.NPKData import copyaxes
 
 def Set_Table_Param():
 #    if debug>0: return
+    import tables
     tables.parameters.CHUNK_CACHE_PREEMPT = 1
     tables.parameters.CHUNK_CACHE_SIZE = 100*1024*1024
     tables.parameters.METADATA_CACHE_SIZE  = 100*1024*1024
@@ -67,16 +65,25 @@ def comp_sizes(si1, si2):
         allsz.append((si1,si2))
     return allsz
 
-def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, downsample=True):
+def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, comp_level=3.0, downsample=True, dparameters=None):
     """
     Entry point to import sets of LC-MS spectra
     processing is done on the fly
     It creates and returns a HDF5 file containing the data-set
     
     compression is active if (compress=True).
+    comp_level is the ratio (in x sigma) under which values are set to 0.0
     downsample is applied if (downsample=True).
     These two parameters are efficient but it takes time.
+
+    dparameters if present, is a dictionnary copied into the final file as json 
     """
+    from spike.File.Solarix import locate_acquisition, read_param
+    from spike.NPKData import TimeAxis, copyaxes
+    from spike.File import HDF5File as hf
+    from spike.util import progressbar as pg
+    from spike.util import widgets
+    from spike.FTICR import FTICRData
     parfilename = locate_acquisition(folder)
     params = read_param(parfilename)
     # get chromatogram
@@ -177,7 +184,8 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, downsa
             spectre.hamming().zf(2).rfft().modulus()  # double the size
             mu, sigma = spectre.robust_stats(iterations=5)
             spectre.buffer -= mu
-            spectre.zeroing(sigma*3).eroding()
+            if compress:
+                spectre.zeroing(sigma*comp_level).eroding()
             packet[ipacket,:] = spectre.buffer[:]  # store into packet
             np.maximum(projection.buffer, spectre.buffer, out=projection.buffer)  # projection
             if (ipacket+1)%szpacket == 0:          # and dump every szpacket
@@ -195,8 +203,9 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, downsa
                     spectre.adapt_size()
                     spectre.chsize(datai.size2).hamming().zf(2).rfft().modulus()
                     mu, sigma = spectre.robust_stats(iterations=5)
-                    spectre.buffer -= mu
-                    spectre.zeroing(sigma*3).eroding()
+                    if compress:
+                        spectre.buffer -= mu
+                    spectre.zeroing(sigma*comp_level).eroding()
                     maxvalues[idt+1] = max( maxvalues[idt+1], spectre.absmax )   # compute max (0 is full spectrum)
                     datai.buffer[ii1,:] = spectre.buffer[:]
 
@@ -206,6 +215,9 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, downsa
         data.buffer[i1-ipacket:i1,:] = packet[:ipacket,:]
     # store maxvalues in the file
     HF.store_internal_object(maxvalues, h5name='maxvalues')
+    if dparameters is not None:
+        HF.store_internal_object(dparameters, h5name='import_parameters')
+
     # then write projection as 'projectionF2'
     proj = FTICRData(dim = 1)
     proj.axis1 = data.axis2.copy()
@@ -215,6 +227,51 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, downsa
     HF.flush()
     return data
 
+class Proc_Parameters(object):
+    """this class is a container for processing parameters"""
+    def __init__(self, configfile = None):
+        "initialisation, see import.mscf for comments on parameters"
+        #from spike.NPKConfigParser import NPKConfigParser
+        from configparser import ConfigParser as NPKConfigParser
+        # processing
+        self.outfile = None
+        self.infilename = None
+        self.compression = True
+        self.compress_level = 3.0
+        self.downSampling = True
+        self.erase = True
+        self.paramfile = None
+        if configfile is not None:
+            self.paramfile = configfile
+            cp = NPKConfigParser()
+            print('parameter file is ', configfile)
+            cp.read_file(open(configfile,'r'))
+            self.outfile = cp['processing'].get("outfile", None)
+            self.infilename = cp['processing'].get("importBrukfolder", None)
+            self.compression = cp['processing'].getboolean("compress_outfile", "True")
+            self.compress_level = cp['processing'].getfloat("compress_level", 3.0)
+            self.downSampling = cp['processing'].getboolean("downsampling", "True")
+            self.erase = cp['processing'].getboolean("erase", "True")
+    def todic(self):
+        "export to dictionary"
+        dd = {}
+        for nm in dir(self):
+        #("paramfile", "infilename", "outfile", "compression", "compress_level", "downSampling", "erase"):
+            if not nm.startswith('_'):
+                val = getattr(self,nm)
+                if not callable(val):
+                    dd[nm] = val
+        return dd
+    def report(self):
+        "print a report"
+        print('------------------------')
+        for (nm,val) in self.todic().items():
+            print(nm, ':', val)
+        print('------------------------')
+    @property
+    def fulloutname(self):
+        return os.path.join(self.infilename, self.outfile)
+    
 def main():
     """
     python ImportLC.py [options] importBrukfolder.d outputfile.msh5
@@ -229,11 +286,14 @@ def main():
 
     # Parse and interpret options.
     parser = argparse.ArgumentParser()
-    parser.add_argument('importBrukfolder', help='input folder that contains the sample to process')
-    parser.add_argument('outputfile', help='output file in msh5 format')
+    parser.add_argument('importBrukfolder', nargs='?', default=None,
+        help='input folder that contains the experiment to process - optional if parameter file is provided')
+    parser.add_argument('outfile', nargs='?', default=None, 
+        help='output file in msh5 format, relative to importBrukfolder - optional if parameter file is provided')
     parser.add_argument('-d', '--paramfile', help='optional parameter file in mscf format')
     parser.add_argument('--doc', action='store_true', help="print a description of the program")
     parser.add_argument('-c', '--compress', action='store_true', help="option to apply file compression, default is False")
+    parser.add_argument('-cl', '--compress_level', type=float, help="compression level - default is 3.0")
     parser.add_argument('-ds', '--downsampling', action='store_true', help="option to apply downsampling to improve access speed, default is False")
     parser.add_argument('-e', '--erase', action='store_true', help="creates a new output file if it already exists, default is False")
     parser.add_argument('-n', '--dry',  action='store_true', help="list parameter and do not run the Import")
@@ -244,31 +304,40 @@ def main():
         print(__doc__)
         sys.exit(0)
 
+    # If from parameter file
     if args.paramfile is not None:
-        print("should read", args.paramfile )
+        param = Proc_Parameters(args.paramfile)
+        if param.infilename is None:
+            param.infilename = os.path.dirname(args.paramfile)
+        if param.outfile is None:
+            param.outfile = os.path.splitext( os.path.basename(args.paramfile))[0] + '.msh5'
+    # if from line arguments
     else:
-        infilename = args.importBrukfolder
-        outputfile = args.outputfile
-        compression = args.compress
-        downSampling = args.downsampling
-        erase = args.erase
+        param = Proc_Parameters()
+        param.compression = args.compress
+        param.compress_level = args.compress_level
+        param.downSampling = args.downsampling
+        param.erase = args.erase
+        param.infilename = args.importBrukfolder
+        param.outfile = args.outfile
+        if param.outfile is None:
+            param.outfile = 'dataset.msh5'
 
-    if args.dry:
-        print(sys.argv[0],' dry run:')
-        print('------------------------')
-        for nm in ("infilename", "outputfile", "compression", "downSampling", "erase", "paramfile"):
-            print(nm, getattr(args,nm))
-        print('------------------------')
-        sys.exit(0)
-    if os.path.isfile(outputfile):
-        if erase == False:
+    if os.path.isfile(param.fulloutname):
+        if param.erase == False:
             sys.exit("File already exists, type a different output file name or erase the existing one")
         else:
             print("Output file will be rewritten")
 
+    if args.dry:
+        print(sys.argv[0],'dry run:')
+        param.report()
+        sys.exit(0)
+
     t0 = time.time()
     Set_Table_Param()
-    d = Import_and_Process_LC(infilename, outfile=outputfile, compress=compression, downsample=downSampling)
+    d = Import_and_Process_LC(param.infilename, outfile=param.fulloutname,
+        compress=param.compression, comp_level=param.compress_level, downsample=param.downSampling)
     elaps = time.time()-t0
     print('Processing took %.2f minutes'%(elaps/60))
 
