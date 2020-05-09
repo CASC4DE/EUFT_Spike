@@ -1,0 +1,56 @@
+# configuration file used for processing of a 2D undef EU-FTICR-MS project
+# automatically called when created on the repository.
+
+# different from regular mscf files for procesing, as the input file is implied for location of the command file
+[import]
+# One parameters must be specified 
+# F1_specwidth is the spectral width used in the F1 (non-classical) dimension
+#     Nyquist frequency, equal to 1/2 (Delta t1) - wher Delta t1 is the time increment between each measure
+# highmass, is th
+F1_specwidth = 500000
+
+[processing]
+# outfile: name of the created file - you ca have several set of parameters, creating different outfile   for the same data-set.
+outfile =  ubiquitine_2D_000002_mr.msh5
+
+# files are internally compressed by removing the weakest value lost in the noise
+# compress_level is the ratio of noise level that will be discarded, up to 3.0 (3 x sigma) it should be ok.
+# the highest compress_level, the better the compression, but expect some distortions and missing small peaks
+compress_level = 3.0
+
+# sizemultipliers tells the program the size of the final 2D, as multiples of the intial (acquisition) sizes
+sizemultipliers = 1.0 1.0
+
+# do_sane : if True, the SANE denoising is applied in F1
+# produces much nicer experiment, but should be limited to 
+do_sane = False
+# rank used for SANE ~ the number of lines expected in each colum
+sane_rank = 20
+# a few SANE iterations may improve, to the price of additional times
+sane_iterations = 2
+# total SANE processing time is proportionnal the size in F1, and to the product of rank and iterations
+
+
+########################## the following parameters should not be modified unless specific needs
+
+#compress_outfile = True
+
+# do_F2 : if false, processing along F2 (horizontal) is not performed
+#do_F2 = True
+
+# do_F1 : if false, processing along F1 (vertical) is not performed
+#do_F1 = True
+
+# do_f1demodu : if True, the F1 offset correction will be applied
+#do_f1demodu = True
+
+# if freq_f1demodu is defined, it will be used by do_f1demodu
+# should be set to the last freq value of the excitation pulse
+# if not set, Exci_high or  highmass is used (thus assuming a lowmass to highmass pulse)
+# freq_f1demodu = 123456.789 
+
+# do_modulus : if True, a modulus will be applied at the end of the processing
+#do_modulus = True
+# do_rem_ridge : if True, vertical ridges will be applied
+#do_rem_ridge = True
+

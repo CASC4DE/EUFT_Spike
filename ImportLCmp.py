@@ -4,14 +4,16 @@ program to import sets of LC-MS spectra
 processing is done on the fly
 It creates and returns a HDF5 file containing the data-set
 """
+
 import sys
 import os
 import math
 import array
 import numpy as np
+import multiprocessing as mp
 from xml.etree import cElementTree as ET
 
-
+print("** WARNING - Is most probably broken ! **")
 def Set_Table_Param():
 #    if debug>0: return
     import tables
@@ -65,6 +67,50 @@ def comp_sizes(si1, si2):
         allsz.append((si1,si2))
     return allsz
 
+def iterargF2(LCfile, sizeF1, sizeF2, compress, comp_level, datalist):
+    "an iterator used by the F2 processing to allow multiprocessing or MPI set-up"
+    for i1 in range(sizeF1):
+        #print(i1, ipacket, end='  ')
+        tbuf = LCfile.read(4*sizeF2)
+        if len(tbuf) != 4*sizeF2:
+            break
+        yield (tbuf, compress, comp_level, datalist, i1, sizeF1)  # must return only one value !
+
+def processF2row(data):
+    from spike.FTICR import FTICRData
+    tbuf, compress, comp_level, datalist, i1, sizeF1 = data
+    if sys.maxsize  == 2**31-1:   # the flag used by array depends on architecture - here on 32bit
+        flag = 'l'              # Apex files are in int32
+    else:                       # here in 64bit
+        flag = 'i'              # strange, but works here.
+    abuf = np.array(array.array(flag,tbuf),dtype=float)
+
+    # processing
+    spectre = FTICRData(buffer=abuf)               # to handle FT
+    spectre.adapt_size()
+    spectre.hamming().zf(2).rfft().modulus()  # double the size
+    mu, sigma = spectre.robust_stats(iterations=5)
+    spectre.buffer -= mu
+    if compress:
+        spectre.zeroing(sigma*comp_level).eroding()
+
+    spectres = []
+    spectres.append(spectre)
+    # now downsampling
+    for idt, datai in enumerate(datalist):
+        if i1%(sizeF1//datai.size1) == 0:   # modulo the size ratio
+            ii1 = (i1*datai.size1) // sizeF1
+            spectre.set_buffer(abuf)
+            spectre.adapt_size()
+            spectre.chsize(datai.size2).hamming().zf(2).rfft().modulus()
+            mu, sigma = spectre.robust_stats(iterations=5)
+            if compress:
+                spectre.buffer -= mu
+            spectre.zeroing(sigma*comp_level).eroding()
+            spectres.append(spectre)
+
+    return spectres
+
 def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, comp_level=3.0, downsample=True, dparameters=None):
     """
     Entry point to import sets of LC-MS spectra
@@ -78,12 +124,14 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, comp_l
 
     dparameters if present, is a dictionnary copied into the final file as json 
     """
+    import multiprocessing as mp
     from spike.File.Solarix import locate_acquisition, read_param
     from spike.NPKData import TimeAxis, copyaxes
     from spike.File import HDF5File as hf
     from spike.util import progressbar as pg
     from spike.util import widgets
     from spike.FTICR import FTICRData
+    Pool = mp.Pool(4)
     parfilename = locate_acquisition(folder)
     params = read_param(parfilename)
     # get chromatogram
@@ -157,11 +205,6 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, comp_l
             maxvalues.append(0.0)
 
     # Then go through input file
-    if sys.maxsize  == 2**31-1:   # the flag used by array depends on architecture - here on 32bit
-        flag = 'l'              # Apex files are in int32
-    else:                       # here in 64bit
-        flag = 'i'              # strange, but works here.
-    spectre = FTICRData(shape=(sizeF2,))               # to handle FT
     projection = FTICRData(buffer=np.zeros(sizeF2))    # to accumulate projection
     projection.axis1 = data.axis2.copy()
     Impwidgets = ['Importing: ', widgets.Percentage(), ' ', widgets.Bar(marker='-',left='[',right=']'), widgets.ETA()]
@@ -171,21 +214,14 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, comp_l
         ipacket = 0
         szpacket = 10
         packet = np.zeros((szpacket,sizeF2))   # store by packet to increase compression speed
-        for i1 in range(sizeF1):
-            absmax = 0.0
-            #print(i1, ipacket, end='  ')
-            tbuf = f.read(4*sizeF2)
-            if len(tbuf) != 4*sizeF2:
-                break
-            abuf = np.array(array.array(flag,tbuf),dtype=float)
-            # processing
-            spectre.set_buffer(abuf)
-            spectre.adapt_size()
-            spectre.hamming().zf(2).rfft().modulus()  # double the size
-            mu, sigma = spectre.robust_stats(iterations=5)
-            spectre.buffer -= mu
-            if compress:
-                spectre.zeroing(sigma*comp_level).eroding()
+        absmax = 0.0
+
+        xarg = iterargF2(f, sizeF1, sizeF2, compress, comp_level, datalist )      # construct iterator for main loop
+
+        res = Pool.imap(processF2row, xarg)
+
+        for i1,spectres in enumerate(res):       # and get results
+            spectre = spectres.pop(0)
             packet[ipacket,:] = spectre.buffer[:]  # store into packet
             np.maximum(projection.buffer, spectre.buffer, out=projection.buffer)  # projection
             if (ipacket+1)%szpacket == 0:          # and dump every szpacket
@@ -196,20 +232,13 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, comp_l
             else:
                 ipacket += 1
             # now downsample
-            for idt, datai in enumerate(datalist):
+            for idt,spectre in enumerate(spectres):
                 if i1%(sizeF1//datai.size1) == 0:   # modulo the size ratio
                     ii1 = (i1*datai.size1) // sizeF1
-                    spectre.set_buffer(abuf)
-                    spectre.adapt_size()
-                    spectre.chsize(datai.size2).hamming().zf(2).rfft().modulus()
-                    mu, sigma = spectre.robust_stats(iterations=5)
-                    if compress:
-                        spectre.buffer -= mu
-                    spectre.zeroing(sigma*comp_level).eroding()
                     maxvalues[idt+1] = max( maxvalues[idt+1], spectre.absmax )   # compute max (0 is full spectrum)
                     datai.buffer[ii1,:] = spectre.buffer[:]
 
-            pbar.update(i1)
+            pbar.update(i+1)
         # flush the remaining packet
         maxvalues[0] = max( maxvalues[0], abs(packet[:ipacket,:].max()) )
         data.buffer[i1-ipacket:i1,:] = packet[:ipacket,:]
@@ -241,6 +270,7 @@ class Proc_Parameters(object):
         self.downSampling = True
         self.erase = True
         self.paramfile = None
+        self.mp = 1
         if configfile is not None:
             self.paramfile = configfile
             cp = NPKConfigParser()
@@ -252,6 +282,7 @@ class Proc_Parameters(object):
             self.compress_level = cp['processing'].getfloat("compress_level", 3.0)
             self.downSampling = cp['processing'].getboolean("downsampling", "True")
             self.erase = cp['processing'].getboolean("erase", "True")
+            self.mp = cp['processing'].getint("multiprocessing", 1)
     def todic(self):
         "export to dictionary"
         dd = {}
@@ -270,10 +301,7 @@ class Proc_Parameters(object):
         print('------------------------')
     @property
     def fulloutname(self):
-        if self.infilename is None or self.outfile is None:
-            return None
-        else:
-            return os.path.join(self.infilename, self.outfile)
+        return os.path.join(self.infilename, self.outfile)
     
 def main():
     """
@@ -300,7 +328,7 @@ def main():
     parser.add_argument('-ds', '--downsampling', action='store_true', help="option to apply downsampling to improve access speed, default is False")
     parser.add_argument('-e', '--erase', action='store_true', help="creates a new output file if it already exists, default is False")
     parser.add_argument('-n', '--dry',  action='store_true', help="list parameter and do not run the Import")
-
+    parser.add_argument('-mp',  type=int, default=1, help="number of processor to use - default 1")
 
     args = parser.parse_args()
 
