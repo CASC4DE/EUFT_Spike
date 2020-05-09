@@ -14,6 +14,38 @@ import multiprocessing as mp
 from xml.etree import cElementTree as ET
 
 print("** WARNING - Is most probably broken ! **")
+
+# #####################################################
+# # This code allows to pickle methods, and thus to use multiprocessing on methods
+# # This very nice trick comes from :
+# # Steven Bethard
+# # http://bytes.com/topic/python/answers/552476-why-cant-you-pickle-instancemethods
+# #
+# def _pickle_method(method):
+#     func_name = method.__func__.__name__
+#     obj = method.__self__
+#     cls = method.__class__
+#     return _unpickle_method, (func_name, obj, cls)
+
+# def _unpickle_method(func_name, obj, cls):
+#     for cls in cls.mro():
+#         try:
+#             func = cls.__dict__[func_name]
+#         except KeyError:
+#             pass
+#         else:
+#             break
+#     return func.__get__(obj, cls)
+# try:
+#     import copy_reg as copyreg
+# except:
+#     import copyreg
+# import types
+# copyreg.pickle(types.MethodType, _pickle_method, _unpickle_method)
+# # end of the trick
+# #####################################################
+
+
 def Set_Table_Param():
 #    if debug>0: return
     import tables
@@ -58,27 +90,27 @@ def comp_sizes(si1, si2):
     while si1>1024 or si2>1024:
         if si1>=2048:
             si1 = si1//4
-        elif si1>=1024:
+        elif si1>1024:
             si1 = si1//2
-        if si2>= 8*1024:
+        if si2>= 4*1024:
             si2 = si2//4
-        elif si2>=1024:
+        elif si2>1024:
             si2 = si2//2
         allsz.append((si1,si2))
     return allsz
 
-def iterargF2(LCfile, sizeF1, sizeF2, compress, comp_level, datalist):
+def iterargF2(LCfile, sizeF1, sizeF2, compress, comp_level, allsizes):
     "an iterator used by the F2 processing to allow multiprocessing or MPI set-up"
     for i1 in range(sizeF1):
         #print(i1, ipacket, end='  ')
-        tbuf = LCfile.read(4*sizeF2)
+        tbuf = LCfile.read(4*sizeF2)   # get data
         if len(tbuf) != 4*sizeF2:
             break
-        yield (tbuf, compress, comp_level, datalist, i1, sizeF1)  # must return only one value !
+        yield (tbuf, compress, comp_level, allsizes, i1, sizeF1)  # must return only one value !
 
 def processF2row(data):
     from spike.FTICR import FTICRData
-    tbuf, compress, comp_level, datalist, i1, sizeF1 = data
+    tbuf, compress, comp_level, allsizes, i1, sizeF1 = data
     if sys.maxsize  == 2**31-1:   # the flag used by array depends on architecture - here on 32bit
         flag = 'l'              # Apex files are in int32
     else:                       # here in 64bit
@@ -97,21 +129,20 @@ def processF2row(data):
     spectres = []
     spectres.append(spectre)
     # now downsampling
-    for idt, datai in enumerate(datalist):
-        if i1%(sizeF1//datai.size1) == 0:   # modulo the size ratio
-            ii1 = (i1*datai.size1) // sizeF1
-            spectre.set_buffer(abuf)
+    for idt, (size1,size2) in enumerate(allsizes):
+        if i1%(sizeF1//size1) == 0:   # modulo the size ratio
+            spectre = FTICRData(buffer=abuf)
             spectre.adapt_size()
-            spectre.chsize(datai.size2).hamming().zf(2).rfft().modulus()
+            spectre.chsize(size2).hamming().zf(2).rfft().modulus()
             mu, sigma = spectre.robust_stats(iterations=5)
+            spectre.buffer -= mu
             if compress:
-                spectre.buffer -= mu
-            spectre.zeroing(sigma*comp_level).eroding()
+                spectre.zeroing(sigma*comp_level).eroding()
             spectres.append(spectre)
 
     return spectres
 
-def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, comp_level=3.0, downsample=True, dparameters=None):
+def Import_and_Process_LC(folder, nProc=1, outfile = "LC-MS.msh5", compress=False, comp_level=3.0, downsample=True, dparameters=None):
     """
     Entry point to import sets of LC-MS spectra
     processing is done on the fly
@@ -125,15 +156,30 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, comp_l
     dparameters if present, is a dictionnary copied into the final file as json 
     """
     import multiprocessing as mp
-    from spike.File.Solarix import locate_acquisition, read_param
+    from spike.File import Solarix, Apex 
+#    from spike.File.Solarix import locate_acquisition, read_param
     from spike.NPKData import TimeAxis, copyaxes
     from spike.File import HDF5File as hf
     from spike.util import progressbar as pg
     from spike.util import widgets
     from spike.FTICR import FTICRData
-    Pool = mp.Pool(4)
-    parfilename = locate_acquisition(folder)
-    params = read_param(parfilename)
+
+    if nProc > 1:
+        print("** running on %d processors"%nProc)
+        Pool = mp.Pool(nProc)
+
+    for _importer in (Solarix, Apex):
+        try:
+            parfilename = _importer.locate_acquisition(folder)
+            params = _importer.read_param(parfilename)
+            sizeF2 = int(params["TD"])
+            importer = _importer
+            break
+        except:
+            print("***************************************")
+            print(params)
+        else:
+            raise Exception("could  not import data-set - unrecognized format")
     # get chromatogram
     minu, tic, maxpk = import_scan( os.path.join(folder,"scan.xml") )   
     # Import parameters : size in F1 and F2    
@@ -216,7 +262,7 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, comp_l
         packet = np.zeros((szpacket,sizeF2))   # store by packet to increase compression speed
         absmax = 0.0
 
-        xarg = iterargF2(f, sizeF1, sizeF2, compress, comp_level, datalist )      # construct iterator for main loop
+        xarg = iterargF2(f, sizeF1, sizeF2, compress, comp_level, allsizes )      # construct iterator for main loop
 
         res = Pool.imap(processF2row, xarg)
 
@@ -233,12 +279,13 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, comp_l
                 ipacket += 1
             # now downsample
             for idt,spectre in enumerate(spectres):
+                datai = datalist[idt]
                 if i1%(sizeF1//datai.size1) == 0:   # modulo the size ratio
                     ii1 = (i1*datai.size1) // sizeF1
                     maxvalues[idt+1] = max( maxvalues[idt+1], spectre.absmax )   # compute max (0 is full spectrum)
                     datai.buffer[ii1,:] = spectre.buffer[:]
 
-            pbar.update(i+1)
+            pbar.update(i1+1)
         # flush the remaining packet
         maxvalues[0] = max( maxvalues[0], abs(packet[:ipacket,:].max()) )
         data.buffer[i1-ipacket:i1,:] = packet[:ipacket,:]
@@ -351,6 +398,7 @@ def main():
         param.compress_level = args.compress_level
         param.downSampling = args.downsampling
         param.erase = args.erase
+        param.mp = args.mp
         param.infilename = args.importBrukfolder
         param.outfile = args.outfile
         if param.outfile is None:
@@ -375,7 +423,7 @@ def main():
 
     t0 = time.time()
     Set_Table_Param()
-    d = Import_and_Process_LC(param.infilename, outfile=param.fulloutname,
+    d = Import_and_Process_LC(param.infilename, nProc=param.mp, outfile=param.fulloutname,
         compress=param.compression, comp_level=param.compress_level, downsample=param.downSampling)
     elaps = time.time()-t0
     print('Processing took %.2f minutes'%(elaps/60))

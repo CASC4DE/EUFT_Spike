@@ -56,11 +56,11 @@ def comp_sizes(si1, si2):
     while si1>1024 or si2>1024:
         if si1>=2048:
             si1 = si1//4
-        elif si1>=1024:
+        elif si1>1024:
             si1 = si1//2
-        if si2>= 8*1024:
+        if si2>= 4*1024:
             si2 = si2//4
-        elif si2>=1024:
+        elif si2>1024:
             si2 = si2//2
         allsz.append((si1,si2))
     return allsz
@@ -78,14 +78,25 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, comp_l
 
     dparameters if present, is a dictionnary copied into the final file as json 
     """
-    from spike.File.Solarix import locate_acquisition, read_param
+    from spike.File import Solarix, Apex 
+#    from spike.File.Solarix import locate_acquisition, read_param
     from spike.NPKData import TimeAxis, copyaxes
     from spike.File import HDF5File as hf
     from spike.util import progressbar as pg
     from spike.util import widgets
     from spike.FTICR import FTICRData
-    parfilename = locate_acquisition(folder)
-    params = read_param(parfilename)
+    for _importer in (Solarix, Apex):
+        try:
+            parfilename = _importer.locate_acquisition(folder)
+            params = _importer.read_param(parfilename)
+            sizeF2 = int(params["TD"])
+            importer = _importer
+            break
+        except:
+            print("***************************************")
+            print(params)
+        else:
+            raise Exception("could  not import data-set - unrecognized format")
     # get chromatogram
     minu, tic, maxpk = import_scan( os.path.join(folder,"scan.xml") )   
     # Import parameters : size in F1 and F2    
@@ -203,9 +214,9 @@ def Import_and_Process_LC(folder, outfile = "LC-MS.msh5", compress=False, comp_l
                     spectre.adapt_size()
                     spectre.chsize(datai.size2).hamming().zf(2).rfft().modulus()
                     mu, sigma = spectre.robust_stats(iterations=5)
+                    spectre.buffer -= mu
                     if compress:
-                        spectre.buffer -= mu
-                    spectre.zeroing(sigma*comp_level).eroding()
+                        spectre.zeroing(sigma*comp_level).eroding()
                     maxvalues[idt+1] = max( maxvalues[idt+1], spectre.absmax )   # compute max (0 is full spectrum)
                     datai.buffer[ii1,:] = spectre.buffer[:]
 

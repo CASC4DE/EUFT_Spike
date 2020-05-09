@@ -13,25 +13,25 @@
 
 # The file which will be created
 #    you can have several set of parameters, creating different outfile   for the same data-set.
-outfile = LC_MS_v1.msh5
+# outfile = LC_MS_v1.msh5
 # default value is the name of the parameter file with a modified extension
 
 # files are internally compressed by removing the weakest value lost in the noise
-compress = True
+# compress = True
 # default value: True
 
 # compress_level is the ratio of noise level that will be discarded, up to 3.0 (3 x sigma) should be ok.
 # the highest compress_level, the better the compression, but expect some distortions and missing small peaks
-compress_level = 3.0
+# compress_level = 3.0
 # default value: 3.0
 
 # low resolution version of the data is stored internally to allow a swift display of the 2D
 # These low resolution spectra take a little additional space (~20%) you might want to remove them (probably a bad idea)
-downsampling = True
+# downsampling = True
 # default value: True
 
 # if the output file is already present, it will be erased
-erase = True
+# erase = True
 # default value: True
 
 # if multiprocessing is larger than 1 (by default)
