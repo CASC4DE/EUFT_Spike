@@ -3,6 +3,20 @@
 program to import sets of LC-MS spectra
 processing is done on the fly
 It creates and returns a HDF5 file containing the data-set
+
+compress_level = 5
+nProc: 1    Time: ?
+nProc: 2    Time: 23
+nProc: 4    Time: 21
+nProc: 8    Time: 20
+
+compress_level = 2
+sg: 220 ???
+
+nProc: 2    Time: 28
+nProc: 4    Time: 24
+nProc: 8    Time: 33
+
 """
 
 import sys
@@ -10,7 +24,6 @@ import os
 import math
 import array
 import numpy as np
-import multiprocessing as mp
 from xml.etree import cElementTree as ET
 
 print("** WARNING - Is most probably broken ! **")
@@ -258,15 +271,17 @@ def Import_and_Process_LC(folder, nProc=1, outfile = "LC-MS.msh5", compress=Fals
     
     with open(fname,"rb") as f:
         ipacket = 0
-        szpacket = 10
+        szpacket = 11
         packet = np.zeros((szpacket,sizeF2))   # store by packet to increase compression speed
         absmax = 0.0
 
         xarg = iterargF2(f, sizeF1, sizeF2, compress, comp_level, allsizes )      # construct iterator for main loop
 
-        res = Pool.imap(processF2row, xarg)
-
-        for i1,spectres in enumerate(res):       # and get results
+        if nProc>1:
+            res = Pool.imap(processF2row, xarg)   # multiproc processing using Pool
+        else:
+            res = map(processF2row, xarg)         # plain single proc processing
+        for i1,spectres in enumerate(res):        # and get results
             spectre = spectres.pop(0)
             packet[ipacket,:] = spectre.buffer[:]  # store into packet
             np.maximum(projection.buffer, spectre.buffer, out=projection.buffer)  # projection
@@ -286,9 +301,10 @@ def Import_and_Process_LC(folder, nProc=1, outfile = "LC-MS.msh5", compress=Fals
                     datai.buffer[ii1,:] = spectre.buffer[:]
 
             pbar.update(i1+1)
+            last = i1
         # flush the remaining packet
         maxvalues[0] = max( maxvalues[0], abs(packet[:ipacket,:].max()) )
-        data.buffer[i1-ipacket:i1,:] = packet[:ipacket,:]
+        data.buffer[last-ipacket:last,:] = packet[:ipacket,:]
     # store maxvalues in the file
     HF.store_internal_object(maxvalues, h5name='maxvalues')
     if dparameters is not None:
@@ -301,6 +317,8 @@ def Import_and_Process_LC(folder, nProc=1, outfile = "LC-MS.msh5", compress=Fals
     proj.buffer[:] =  projection.buffer[:]
     pbar.finish()
     HF.flush()
+    if nProc>1:
+        Pool.close()    # finally closes multiprocessing slaves
     return data
 
 class Proc_Parameters(object):
@@ -360,7 +378,6 @@ def main():
     """
     import argparse
     import time
-    import os.path
 
     # Parse and interpret options.
     parser = argparse.ArgumentParser()
