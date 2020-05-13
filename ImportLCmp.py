@@ -12,7 +12,7 @@ nProc: 8    Time: 20
 
 compress_level = 2
 sg: 220 ???
-
+nProc: 1    Time: ?
 nProc: 2    Time: 28
 nProc: 4    Time: 24
 nProc: 8    Time: 33
@@ -25,8 +25,6 @@ import math
 import array
 import numpy as np
 from xml.etree import cElementTree as ET
-
-print("** WARNING - Is most probably broken ! **")
 
 # #####################################################
 # # This code allows to pickle methods, and thus to use multiprocessing on methods
@@ -155,7 +153,8 @@ def processF2row(data):
 
     return spectres
 
-def Import_and_Process_LC(folder, nProc=1, outfile = "LC-MS.msh5", compress=False, comp_level=3.0, downsample=True, dparameters=None):
+def Import_and_Process_LC(folder, nProc=1, outfile = "LC-MS.msh5",
+        compress=False, comp_level=3.0, downsample=True, dparameters=None):
     """
     Entry point to import sets of LC-MS spectra
     processing is done on the fly
@@ -189,8 +188,9 @@ def Import_and_Process_LC(folder, nProc=1, outfile = "LC-MS.msh5", compress=Fals
             importer = _importer
             break
         except:
-            print("***************************************")
-            print(params)
+            #print("***************************************")
+            #print(params)
+            pass
         else:
             raise Exception("could  not import data-set - unrecognized format")
     # get chromatogram
@@ -245,7 +245,7 @@ def Import_and_Process_LC(folder, nProc=1, outfile = "LC-MS.msh5", compress=Fals
     try:
         HF.store_internal_file( locate_ExciteSweep(folder) )
     except:
-        print('ExciteSweep file not stored')
+        print('ExciteSweep file not found')
     data.hdf5file = HF    # I need a link back to the file in order to close it 
 
     # Start processing - first computes sizes and sub-datasets
@@ -305,17 +305,24 @@ def Import_and_Process_LC(folder, nProc=1, outfile = "LC-MS.msh5", compress=Fals
         # flush the remaining packet
         maxvalues[0] = max( maxvalues[0], abs(packet[:ipacket,:].max()) )
         data.buffer[last-ipacket:last,:] = packet[:ipacket,:]
-    # store maxvalues in the file
-    HF.store_internal_object(maxvalues, h5name='maxvalues')
-    if dparameters is not None:
-        HF.store_internal_object(dparameters, h5name='import_parameters')
+    pbar.finish()
 
     # then write projection as 'projectionF2'
+    print('writing projections')
     proj = FTICRData(dim = 1)
     proj.axis1 = data.axis2.copy()
     HF.create_from_template(proj, group='projectionF2')
     proj.buffer[:] =  projection.buffer[:]
-    pbar.finish()
+
+    # store maxvalues in the file
+    print('writing max abs value')
+    HF.store_internal_object(maxvalues, h5name='maxvalues')
+
+    print('writing parameters')
+    if dparameters is not None:
+        HF.store_internal_object(dparameters, h5name='import_parameters')
+
+    # and close
     HF.flush()
     if nProc>1:
         Pool.close()    # finally closes multiprocessing slaves
@@ -335,7 +342,7 @@ class Proc_Parameters(object):
         self.downSampling = True
         self.erase = True
         self.paramfile = None
-        self.mp = 1
+        self.mp = 4
         if configfile is not None:
             self.paramfile = configfile
             cp = NPKConfigParser()
@@ -348,6 +355,11 @@ class Proc_Parameters(object):
             self.downSampling = cp['processing'].getboolean("downsampling", "True")
             self.erase = cp['processing'].getboolean("erase", "True")
             self.mp = cp['processing'].getint("multiprocessing", 1)
+            if self.infilename is None:
+                self.infilename = os.path.dirname(self.paramfile)
+            if self.outfile is None:
+                self.outfile = os.path.splitext( os.path.basename(self.paramfile))[0] + '.msh5'
+
     def todic(self):
         "export to dictionary"
         dd = {}
@@ -363,11 +375,14 @@ class Proc_Parameters(object):
         print('------------------------')
         for (nm,val) in self.todic().items():
             print(nm, ':', val)
+        print('fulloutname :', self.fulloutname)
         print('------------------------')
     @property
     def fulloutname(self):
-        return os.path.join(self.infilename, self.outfile)
-    
+        if self.infilename is None or self.outfile is None:
+            return None
+        else:
+            return os.path.join(self.infilename, self.outfile)    
 def main():
     """
     python ImportLC.py [options] importBrukfolder.d outputfile.msh5
@@ -404,10 +419,6 @@ def main():
     # If from parameter file
     if args.paramfile is not None:
         param = Proc_Parameters(args.paramfile)
-        if param.infilename is None:
-            param.infilename = os.path.dirname(args.paramfile)
-        if param.outfile is None:
-            param.outfile = os.path.splitext( os.path.basename(args.paramfile))[0] + '.msh5'
     # if from line arguments
     else:
         param = Proc_Parameters()
@@ -441,7 +452,8 @@ def main():
     t0 = time.time()
     Set_Table_Param()
     d = Import_and_Process_LC(param.infilename, nProc=param.mp, outfile=param.fulloutname,
-        compress=param.compression, comp_level=param.compress_level, downsample=param.downSampling)
+        compress=param.compression, comp_level=param.compress_level, downsample=param.downSampling,
+        dparameters=param.todic() )
     elaps = time.time()-t0
     print('Processing took %.2f minutes'%(elaps/60))
 

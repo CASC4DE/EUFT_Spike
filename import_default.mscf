@@ -25,6 +25,20 @@
 # compress_level = 3.0
 # default value: 3.0
 
+# Peak-Picking is performed automatically on the spectrum
+# peakpicking = True
+# default value: True
+
+# peaks are detected if larger a ratio of noise level, larger than 10  (10 x sigma) should be ok.
+# peakpicking_noise_level = 10.0
+# default value: 10.0
+
+# each peak position and width is optimized by a 2D centroid 
+# centroid = True
+# default value: True
+
+########################## the following parameters should not be modified unless specific needs
+
 # low resolution version of the data is stored internally to allow a swift display of the 2D
 # These low resolution spectra take a little additional space (~20%) you might want to remove them (probably a bad idea)
 # downsampling = True
@@ -34,7 +48,7 @@
 # erase = True
 # default value: True
 
-# if multiprocessing is larger than 1 (by default)
+# if multiprocessing is larger than 1
 # python.multiprocessing will be used to run a parallel version of the program
 # multiprocessing = 4
-# default value: 1
+# default value: 4

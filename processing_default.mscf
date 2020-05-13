@@ -30,6 +30,23 @@ sane_rank = 20
 sane_iterations = 2
 # total SANE processing time is proportionnal the size in F1, and to the product of rank and iterations
 
+# Peak-Picking is performed automatically on the spectrum
+# peakpicking = True
+# default value: True
+
+# peaks are detected if larger a ratio of noise level, larger than 10  (10 x sigma) should be ok.
+# peakpicking_noise_level = 10.0
+# default value: 10.0
+
+# each peak position and width is optimized by a 2D centroid 
+# centroid = True
+# default value: True
+
+
+# if the output file is already present, it will be erased
+# erase = True
+# default value: True
+
 
 ########################## the following parameters should not be modified unless specific needs
 
@@ -53,4 +70,6 @@ sane_iterations = 2
 #do_modulus = True
 # do_rem_ridge : if True, vertical ridges will be applied
 #do_rem_ridge = True
+
+
 
