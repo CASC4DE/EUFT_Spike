@@ -13,6 +13,8 @@
 # sudo su new_user
 # then execute this script 
 
+version="1.0"
+echo "EUFT Installation - version $version"
 # init of conda
 /opt/anaconda3/condabin/conda init
 source .bashrc
