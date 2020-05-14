@@ -1,6 +1,7 @@
 # script to run to install the environement in the user directory
 # MAD May 2020
 
+
 # first create user (je crois que j'ai les bonnes commandes)
 # user new_user - in group newlab and euftgrp
 
@@ -9,7 +10,8 @@
 # >> sudo adduser new_user euftgrp
 
 # cd to his home dir
-sudo su new_user
+# sudo su new_user
+# then execute this script 
 
 # init of conda
 /opt/anaconda3/condabin/conda init
@@ -19,6 +21,7 @@ source .bashrc
 # conda create -y --use-local -n Spike numpy scipy matplotlib pytables pandas ipympl 
 # conda activate Spike
 conda install --use-local -y numpy scipy matplotlib pytables pandas ipympl
+
 # and populate
 # jupyter
 pip --log pip.log install --user jupyter_contrib_nbextensions
@@ -38,24 +41,29 @@ pip --log pip.log install --user voila spike-py
 # eventuellement  Faire les tests
 #python -m spike.Tests -D DATA_test
 
-#Installer les outils locaux
+# Installer les outils locaux
 fossil clone http://localhost:8070/home/casc4de/FossilRepositories/EUFT_Spike EUFT_Spike.fossil
-mkdir EUFT_Spike
+mkdir -p EUFT_Spike
 cd EUFT_Spike
-
 fossil open ../EUFT_Spike.fossil
-ls Easy*.py |xargs -n 1 jupytext --to notebook
 rm AFAIRE.md
-
+ls Easy*.py |xargs -n 1 jupytext --to notebook
+# and move to $HOME
+mv Easy*.ipynb ..
 
 cd ..
 # pour enlever les plugins inutiles:
 EUFT_Spike/clean_plugins.sh
 # créer le lien vers les données
-ln -s Seadrive/My_libraries/My_Library/ FTICR_DATA
+if [ -f "FTICR_DATA" ] ; then
+    echo "FTICR_DATA present"
+else
+    ln -s Seadrive/My_libraries/My_Library/ FTICR_DATA
+fi
 
 # pour les taches automatiques
 pip --log pip.log install --user doit
 
+# cette partie là n'est pas encore finie !!!
 # rajouter crontab pour metafile_v0.py
 # */5 * * * * python code.py >> metafile.log 2>&1
