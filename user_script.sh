@@ -36,7 +36,8 @@ pip --log pip.log install --user jupytext
 jupyter serverextension enable jupytext
 
 # program
-pip --log pip.log install --user voila spike-py
+pip --log pip.log install --user voila
+pip --log pip.log install --user -U spike-py
 
 # eventuellement  Faire les tests
 #python -m spike.Tests -D DATA_test
@@ -58,7 +59,7 @@ EUFT_Spike/clean_plugins.sh
 if [ -f "FTICR_DATA" ] ; then
     echo "FTICR_DATA present"
 else
-    ln -s Seadrive/My_libraries/My_Library/ FTICR_DATA
+    ln -s SeaDrive/My_libraries/My_Library/ FTICR_DATA
 fi
 
 # pour les taches automatiques
