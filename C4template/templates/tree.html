@@ -87,10 +87,8 @@
         <li><a href="{{ base_url }}voila/render/{{ content.path }}"><i class="fa fa-book"></i>{{content.name}}</a>
         {% if 'LC' in content.name %}
           &nbsp;  &nbsp; for LC-MS experiments
-<!--
         {% elif '2D' in content.name %}
           &nbsp; for 2D MS experiments <i>- still in development -</i>
--->
         {% elif 'Process' in content.name %}
           &nbsp; for direct injection MS experiments
         {% endif %}

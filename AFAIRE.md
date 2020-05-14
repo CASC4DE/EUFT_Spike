@@ -25,6 +25,14 @@
 - audit trail au bon endroit : `op.join( data.fullpath,'audittrail.txt')`
 
 
-```python
+# mise en place
+## mail
+- attention aux lignes (wrap dans subl)
 
-```
+
+## tuto vpn
+- dire mac => tunnelblick 
+- pour les fichiers faire cd puis copy 
+
+## tuto processing
+- mauvaise adresse
