@@ -1,38 +1,39 @@
 # script to run to install the environement in the user directory
 # MAD May 2020
 
-# first create user in group euftgrp + grplabo 
+# first create user (je crois que j'ai les bonnes commandes)
+# user new_user - in group newlab and euftgrp
+
+# >> sudo addgroup newlab (par exemple)
+# >> sudo adduser new_user --ingroup newlab
+# >> sudo adduser new_user euftgrp
+
 # cd to his home dir
+sudo su new_user
 
-
-# insure that the following code is also present in .bashrc !!!! 
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/opt/anaconda3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/opt/anaconda3/etc/profile.d/conda.sh" ]; then
-        . "/opt/anaconda3/etc/profile.d/conda.sh"
-    else
-        export PATH="/opt/anaconda3/bin:$PATH"
-    fi
-fi
-unset __conda_setup
-# <<< conda initialize <<<
-
+# init of conda
+/opt/anaconda3/condabin/conda init
+source .bashrc
 
 # create environment
-conda create -y --use-local -n Spike numpy scipy matplotlib pytables pandas ipympl 
-conda activate Spike
+# conda create -y --use-local -n Spike numpy scipy matplotlib pytables pandas ipympl 
+# conda activate Spike
+conda install --use-local -y numpy scipy matplotlib pytables pandas ipympl
 # and populate
 # jupyter
-pip --log pip.log install jupyter_contrib_nbextensions
+pip --log pip.log install --user jupyter_contrib_nbextensions
+
+echo '# >> jupyter nbextension' >> .bashrc
+echo 'export PATH="'$HOME'/.local/bin:$PATH"' >> .bashrc
+echo '# << jupyter nbextension' >> .bashrc
+source .bashrc
+
 jupyter contrib nbextension install --user
-pip --log pip.log install jupytext
+pip --log pip.log install --user jupytext
 jupyter serverextension enable jupytext
+
 # program
-pip --log pip.log install voila spike-py
+pip --log pip.log install --user voila spike-py
 
 # eventuellement  Faire les tests
 #python -m spike.Tests -D DATA_test
@@ -46,10 +47,15 @@ fossil open ../EUFT_Spike.fossil
 ls Easy*.py |xargs -n 1 jupytext --to notebook
 rm AFAIRE.md
 
+
 cd ..
 # pour enlever les plugins inutiles:
 EUFT_Spike/clean_plugins.sh
 # créer le lien vers les données
 ln -s Seadrive/My_libraries/My_Library/ FTICR_DATA
 
+# pour les taches automatiques
+pip --log pip.log install --user doit
+
 # rajouter crontab pour metafile_v0.py
+# */5 * * * * python code.py >> metafile.log 2>&1

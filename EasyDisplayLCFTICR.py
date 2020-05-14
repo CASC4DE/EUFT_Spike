@@ -27,7 +27,7 @@
 import spike
 
 # %%
-import Tools.LCFTICR_INTER as LCI
+import EUFT_Spike.Tools.LCFTICR_INTER as LCI
 #print('spike version:',spike.version.version)
 #print('interface version: ',LCI.FI.version)
 

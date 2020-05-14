@@ -28,7 +28,7 @@ import spike
 
 
 # %%
-import Tools.FTICR_INTER as FI
+import EUFT_Spike.Tools.FTICR_INTER as FI
 
 
 # %%

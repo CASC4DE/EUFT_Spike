@@ -57,7 +57,7 @@ display(Markdown('## STARTING Environment...'))
 # %matplotlib widget
 import spike
 from spike.Interactive.INTER import hidecode
-import Tools.FTICR2D_INTER as IF2
+import EUFT_Spike.Tools.FTICR2D_INTER as IF2
 display(Markdown('## ... program is ready'))
 from importlib import reload  # the two following lines are debugging help
 reload(IF2)                   # and can be removed safely when in production
