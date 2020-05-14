@@ -275,7 +275,8 @@ class IFTMS(object):
                         print(self.datap.data)
     def wait(self):
         "show a little waiting wheel"
-        with open("Tools/icon-loader.gif", "rb") as F:
+        here = Path(__file__).parent
+        with open(here/"icon-loader.gif", "rb") as F:
             with self.waitarea:
                 self.wwait = widgets.Image(value=F.read(),format='gif',width=40)
                 display(self.wwait)

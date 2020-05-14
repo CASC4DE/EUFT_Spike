@@ -12,6 +12,7 @@ This version requires ipympl (see: https://github.com/matplotlib/jupyter-matplot
 and the notebook to be opened with %matplotlib widget
 """
 import os.path as op
+from pathlib import Path
 import time
 import tables
 import matplotlib.pyplot as plt
@@ -404,7 +405,8 @@ class LC1D(VBox):
             self.show()
     def wait(self):
         "show a little waiting wheel"
-        with open("Tools/icon-loader.gif", "rb") as F:
+        here = Path(__file__).parent
+        with open(here/"icon-loader.gif", "rb") as F:
             self.wwait = widgets.Image(value=F.read(),format='gif',width=40)
             display(self.wwait)
     def done(self):
@@ -859,7 +861,8 @@ class MS2Dscene(object):
 
     def wait(self):
         "show a little waiting wheel"
-        with open("Tools/icon-loader.gif", "rb") as F:
+        here = Path(__file__).parent
+        with open(here/"icon-loader.gif", "rb") as F:
             with self.waitarea:
                 self.wwait = widgets.Image(value=F.read(),format='gif',width=40)
                 display(self.wwait)
