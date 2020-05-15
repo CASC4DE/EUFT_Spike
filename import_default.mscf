@@ -1,12 +1,15 @@
 # processing example configuration file
 # the file contains only 1 section :  processing
 #
+# the '#' in the beginning of the line marks a comment - ignored by the processing program
+# to activate or modify an option, simply remove the #, and adapt to you needs
 # entries are case insensitive (except for file names !).
+# 
 # see python ConfigParser documentation for a full description of capabilities
 # 
-# all entries are optional
-
+# all entries are optional except this following line:
 [processing]
+
 # The name of the folder ( *.d ) which contains the data-set to be imported
 # importBrukfolder = .
 # default value is the folder containing the parameter file

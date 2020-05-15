@@ -80,7 +80,12 @@ class FileChooser(VBox):
         fc = FileChooser()
         open(fc.selected)
     """
-    def __init__(self, base='DATA', dotd=True, msh5=True):
+    def __init__(self, base='DATA', dotd=True, msh5=True,
+        accept=('fid', 'FID', 'ser', 'MS', 'LC-MS', '2D-MS')):
+        """
+        accept is a list of ftype that will added to the list
+        among 'fid', 'FID', ser', 'MS', 'LC-MS', '2D-MS'
+        """
         super().__init__()
         self.base = base
         flist = []
@@ -89,17 +94,20 @@ class FileChooser(VBox):
             for i in Path(base).glob('**/*.d'):     # Apex and Solarix
                 if i.is_dir():
                     ftype = self.filetype(i)
-                    flist.append(MSfile(i, i.relative_to(base), ftype)) 
+                    if ftype in accept:
+                        flist.append(MSfile(i, i.relative_to(base), ftype)) 
             for i in Path(base).glob('**/acqus'):   # "Apex0"
                 if (i.parent/'fid').exists():
                     ftype = self.filetype(i)
-                    flist.append(MSfile((i.parent/'fid'), i.parent.relative_to(base), ftype)) 
+                    if ftype in accept:
+                        flist.append(MSfile((i.parent/'fid'), i.parent.relative_to(base), ftype)) 
 
         if msh5:
             flist.append('   --- processed ---')
             for i in Path(base).glob('**/*.msh5'):
                 ftype = self.filetype(i)
-                flist.append(MSfile(i, i.relative_to(base), ftype)) 
+                if ftype in accept:
+                    flist.append(MSfile(i, i.relative_to(base), ftype)) 
         self.selec = widgets.Select(options=flist, rows=min(8,len(flist)), layout={'width': 'max-content'})
         self.children  = [widgets.HTML('<b>Choose one experiment</b>'), self.selec ]
     def filetype(self, path):
@@ -119,9 +127,9 @@ class FileChooser(VBox):
                 try:
                     pj = FTICRData(name=str(path), mode="onfile", group="projectionF2")
                     pj.hdf5file.close()
-                    toreturn = 'LCMS'
+                    toreturn = 'LC-MS'
                 except tables.NoSuchNodeError:
-                    toreturn = '2DMS'
+                    toreturn = '2D-MS'
             else:
                 toreturn = '???'
             d.hdf5file.close()
@@ -172,7 +180,7 @@ class IFTMS(object):
         # header
         #   filechooser
         self.base = BASE
-        self.filechooser = FileChooser(self.base)
+        self.filechooser = FileChooser(self.base, accept=('MS','fid','FID'))
         self.datap = None
         self.MAX_DISP_PEAKS = NbMaxDisplayPeaks
 

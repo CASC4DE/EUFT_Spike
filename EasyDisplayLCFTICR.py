@@ -23,14 +23,31 @@
 # %%
 # adapt sys.path to local env
 import sys, os
-local = '.local/lib/python%d.%d/site-packages'%(sys.version_info.major,sys.version_info.minor)
-sys.path = [local] + sys.path
+if os.uname().nodename == 'madMacBook':
+    print('on my Mac')
+    os.chdir('..')
+else:
+    local = '.local/lib/python%d.%d/site-packages'%(sys.version_info.major,sys.version_info.minor)
+    sys.path = [local] + sys.path
 
 # %%
 # %%capture
 # %matplotlib widget
 # %xmode Plain
 import spike
+
+# %% [markdown]
+# # How to process LC-MS experiments
+# In order to appear here, LC-MS experiments have to processed in the background before being displayed on this tool.
+# To do so, you should upload into the Bruker `xxx.d` folder a configuration file called 
+# `import_yyy.mscf` where `yyy` can be anything (the `import_` part is important, the processing program search for it).
+#
+# You can [download here](http://10.18.0.2:5052/static/import_default.mscf) a template file, eventually edit it (it is a simple text file) it and upload it to the directory.
+# The presence of such a file will trigger the background processing, and your processed will appear in the list.
+# If different  `import_*.mscf` files are present, respective processings will be performed.
+#
+#
+# For more information see `Documentation` below.
 
 # %%
 import EUFT_Spike.Tools.LCFTICR_INTER as LCI

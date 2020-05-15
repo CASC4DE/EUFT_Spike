@@ -84,7 +84,7 @@
 
     {% for content in contents.content %}
       {% if content.type in ['notebook'] %}
-        <li><a href="{{ base_url }}voila/render/{{ content.path }}"><i class="fa fa-book"></i>{{content.name}}</a>
+        <li><a href="{{ base_url }}voila/render/{{ content.path }}"><i class="fa fa-book"></i>{{content.name.split('.')[0]}}</a>
         {% if 'LC' in content.name %}
           &nbsp;  &nbsp; for LC-MS experiments
         {% elif '2D' in content.name %}

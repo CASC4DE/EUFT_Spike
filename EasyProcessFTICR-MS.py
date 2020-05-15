@@ -21,8 +21,12 @@
 # %%
 # adapt sys.path to local env
 import sys, os
-local = '.local/lib/python%d.%d/site-packages'%(sys.version_info.major,sys.version_info.minor)
-sys.path = [local] + sys.path
+if os.uname().nodename == 'madMacBook':
+    print('on my Mac')
+    os.chdir('..')
+else:
+    local = '.local/lib/python%d.%d/site-packages'%(sys.version_info.major,sys.version_info.minor)
+    sys.path = [local] + sys.path
 
 
 # %%

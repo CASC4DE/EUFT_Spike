@@ -779,7 +779,7 @@ class MS2Dscene(object):
         # header
         #   filechooser
         self.base = BASE
-        self.filechooser = FI.FileChooser(self.base, dotd=False)
+        self.filechooser = FI.FileChooser(self.base, dotd=False, accept=('LC-MS',))
         self.datap = None
         self.MAX_DISP_PEAKS = NbMaxDisplayPeaks
         self.debug = Debug
