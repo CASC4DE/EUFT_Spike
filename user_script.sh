@@ -50,6 +50,8 @@ mkdir -p EUFT_Spike
 cd EUFT_Spike
 fossil open ../EUFT_Spike.fossil
 rm AFAIRE.md
+rm EasyDisplayFTICR2D.py  # temporary
+
 ls Easy*.py |xargs -n 1 jupytext --to notebook
 # and move to $HOME
 mv Easy*.ipynb ..

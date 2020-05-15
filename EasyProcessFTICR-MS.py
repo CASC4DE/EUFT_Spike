@@ -19,6 +19,13 @@
 # ### *EU-FTICR-MS Network*
 
 # %%
+# adapt sys.path to local env
+import sys, os
+local = os.path.join(os.getenv('HOME'), '.local/lib/python%d.%d/site-packages'%(sys.version_info.major,sys.version_info.minor))
+sys.path = [local] + sys.path
+
+
+# %%
 # %%capture
 # load all python and interactive tools
 # %matplotlib widget
