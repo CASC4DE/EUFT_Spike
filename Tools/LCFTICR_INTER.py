@@ -791,7 +791,7 @@ class MS2Dscene(object):
         self.bload.on_click(self.load2D)
         #       pp
         self.bpeak = Button(description='Peak Pick', #layout=Layout(width='15%'),
-                 tooltip='Detect Peaks')
+                 tooltip='Detect Peaks', disabled=True)
 #        self.bpeak.on_click(self.peakpick)
 
         # GUI set-up and scene
