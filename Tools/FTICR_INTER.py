@@ -38,7 +38,7 @@ DEBUG = False
 BASE = 'FTICR_DATA'              # name of the 
 SIZEMAX = 8*1024*1024        # largest zone to display
 NbMaxDisplayPeaks = 200      # maximum number of peaks to display at once
-version = "1.0.0"
+version = "1.0.01"
 
 # TOOLS FOR 1D FTICR
 
@@ -163,7 +163,10 @@ class Dataproc:
 
     def process(self):
         if self.data.dim == 1:
-            self.DATA = U.process_ms1d(self.data.copy(), self.procparam)
+            datacopy = self.data.copy()
+            datacopy.fullpath = self.data.fullpath
+            datacopy.filename = self.data.filename
+            self.DATA = U.process_ms1d(datacopy, self.procparam)
             self.DATA.filename = self.data.filename
             self.DATA.fullpath = self.data.fullpath
             self.DATA.set_unit('m/z')

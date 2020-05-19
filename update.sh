@@ -5,6 +5,9 @@ mkdir -p prev_ipynb
 mv *.ipynb prev_ipynb
 
 # update
+# spike
+pip --log pip.log install --user -U spike-py
+# EU tools
 cd EUFT_Spike
 fossil revert
 fossil update
