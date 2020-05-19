@@ -1,4 +1,5 @@
-# update of 15 May 2020
+# update of 19 May 2020
+echo update of 19 May 2020
 # clean
 find $HOME -path '*.pyc' -delete
 mkdir -p prev_ipynb
