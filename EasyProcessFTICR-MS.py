@@ -7,7 +7,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.3.4
+#       jupytext_version: 1.4.0
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -62,16 +62,22 @@ def dodoc(md):
     with out:
         display(Markdown(md))
     return out
+info = dodoc('''This program is developped by [CASC4DE](www.casc4de.eu) and is based on 
+- the [Spike](https://forum.casc4de.eu/p/2-spike) processing program,
+- the [scientific python](https://www.scipy.org/) language,
+- the [Jupyter](https://jupyter.org/) graphic environment,
+and the [Voilà](https://github.com/voila-dashboards/voila) dashboard system.
+
+### Current Version
+- spike version: %s
+- interface version: %s
+'''%(spike.version.version, FI.version))
+
 doc = dodoc('''# DOCUMENTATION
 
 
 This program allows to process and analyse **MS FTICR** data-sets, i.e. raw transients
 as obtained from the FTICR machine.
-
-It is based on the [Spike](https://forum.casc4de.eu/p/2-spike) processing program,
-the [scientific python](https://www.scipy.org/) language,
-the [Jupyter](https://jupyter.org/) graphic environment,
-and the [Voilà](https://github.com/voila-dashboards/voila) dashboard system.
 
 The program allows process the transients, detect peaks, interact with the spectrum,
 and store the final result.
@@ -163,9 +169,10 @@ expect improvements, as certain parts are still in development
 - ...
 ''')
 
-accordion = widgets.Accordion(children=[doc, comment])
-accordion.set_title(0,'Documentation')
-accordion.set_title(1,'Comments')
+accordion = widgets.Accordion(children=[info, doc, comment])
+accordion.set_title(0,'About')
+accordion.set_title(1,'Documentation')
+accordion.set_title(2,'Comments')
 accordion.selected_index = None
 accordion
 
@@ -186,7 +193,3 @@ to do:
 - superimposition
 - simple A B C calibration
 """
-
-# %%
-print('spike version:',spike.version.version)
-print('interface version - ',FI.version)

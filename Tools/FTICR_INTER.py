@@ -38,7 +38,7 @@ DEBUG = False
 BASE = 'FTICR_DATA'              # name of the 
 SIZEMAX = 8*1024*1024        # largest zone to display
 NbMaxDisplayPeaks = 200      # maximum number of peaks to display at once
-version = "1.0.01"
+version = "1.0.02"
 
 # TOOLS FOR 1D FTICR
 
@@ -81,13 +81,23 @@ class FileChooser(VBox):
         open(fc.selected)
     """
     def __init__(self, base='DATA', dotd=True, msh5=True,
-        accept=('fid', 'FID', 'ser', 'MS', 'LC-MS', '2D-MS')):
+                 accept=('fid', 'FID', 'ser', 'MS', 'LC-MS', '2D-MS')):
         """
         accept is a list of ftype that will added to the list
         among 'fid', 'FID', ser', 'MS', 'LC-MS', '2D-MS'
         """
         super().__init__()
         self.base = base
+        self.filter = {'base':base, 'dotd':dotd, 'msh5':msh5, 'accept':accept}
+        flist = self.build_list(**self.filter)
+        self.selec = widgets.Select(options=flist, rows=min(8,len(flist)), layout={'width': 'max-content'})
+        self.bref = Button(description='Refresh',layout=Layout(width='10%'),
+                tooltip='Refresh list')
+        self.bref.on_click(self.refresh)
+        first_line = HBox([widgets.HTML('<b>Choose one experiment</b>&nbsp;&nbsp;'), self.bref])
+        self.children  = [first_line, self.selec ]
+    def build_list(self, base='DATA', dotd=True, msh5=True,
+                   accept=('fid', 'FID', 'ser', 'MS', 'LC-MS', '2D-MS')):
         flist = []
         if dotd:
             flist.append('   --- raw ---')
@@ -101,15 +111,16 @@ class FileChooser(VBox):
                     ftype = self.filetype(i)
                     if ftype in accept:
                         flist.append(MSfile((i.parent/'fid'), i.parent.relative_to(base), ftype)) 
-
         if msh5:
             flist.append('   --- processed ---')
             for i in Path(base).glob('**/*.msh5'):
                 ftype = self.filetype(i)
                 if ftype in accept:
                     flist.append(MSfile(i, i.relative_to(base), ftype)) 
-        self.selec = widgets.Select(options=flist, rows=min(8,len(flist)), layout={'width': 'max-content'})
-        self.children  = [widgets.HTML('<b>Choose one experiment</b>'), self.selec ]
+        return flist
+    def refresh(self, e):
+        self.selec.options = self.build_list(**self.filter)
+        self.selec.rows = min(8,len(self.selec.options))
     def filetype(self, path):
         "returns filetype as a string"
         if path.suffix == '.d':
@@ -284,6 +295,8 @@ class IFTMS(object):
                     if self.datap.DATA != None:  # a processed has been loaded
                         display( Markdown("# Processed Dataset\n%s\n"%(self.selected,)) )
                         print(self.datap.data)
+                        with open('audit_trail.txt','r') as F:
+                            display(Markdown(F.read()))
     def wait(self):
         "show a little waiting wheel"
         here = Path(__file__).parent
@@ -323,6 +336,7 @@ class IFTMS(object):
         data = None
         DATA.filename = self.selected      # filename and fullpath are equivalent !
         DATA.fullpath = fullpath
+        audit = U.auditinitial(title="Load file", append=False)
         DATA.set_unit('m/z')
         self.datap = Dataproc(data)
         self.datap.data = None
@@ -347,6 +361,7 @@ class IFTMS(object):
             return
         data.filename = self.selected
         data.fullpath = fullpath      # filename and fullpath are equivalent !
+        audit = U.auditinitial(title="Load file", append=False)
         data.set_unit('sec')
         with self.fid:
             data.display(title=self.title,new_fig={'figsize':(10,5)})
@@ -421,10 +436,11 @@ class IFTMS(object):
         with self.waitarea:
             print('Data-set saved')
             self.waitarea.clear_output(wait=True)
+        self.filechooser.refresh('event')
 
     def process(self,e):
         "do the FT"
-        if self.datap == None:
+        if self.datap == None or self.datap.data == None:
             with self.waitarea:
                 print('Please load a raw dataset first')
                 self.waitarea.clear_output(wait=True)

@@ -1,7 +1,7 @@
 """
 various utilities for processing un interactive program
 """
-#########################################
+""
 import sys, os
 import os.path as op
 from pprint import pprint
@@ -25,10 +25,10 @@ def loadjson(filename):
             if not (l.startswith('#') or l.startswith('//')):
                 c.append(l)
     return json.loads("".join(c))
- 
+
 ####################
-###   NMR  #########
-####################
+# ##   NMR  #########
+# ###################
 
 def _process_1d(audit,p_in_arg,f_in,f_out,inputfilename,outputfilename):
     """
@@ -185,8 +185,8 @@ def process_nmr1d(data, parameters):
     return data
 
 #########################################################################
-####### MS
-#########################################################################
+# ###### MS
+# ########################################################################
 MS_Apod = {}
 MS_Apod['None'] = Apodisation('no apodisation',  partial(npkd.apod_em, lb=0.0))
 MS_Apod['hamming'] = Apodisation('Hamming', partial(npkd.hamming))
@@ -303,7 +303,16 @@ def peakpick_ms1d(data, parameters):
     audit = auditinitial(title="MS post-processing", append=True)
     audittrail( audit, "text", str(data))
     audittrail( audit, "phase","Peak-Picking")
-    data.set_unit('m/z').peakpick(autothresh=float(parameters['peakpicking_noise_level']), verbose=False, zoom=parameters['zoom'])
+    # check is dataset was compressed
+    b = data.get_buffer().real
+    test = b[b != 0.0 ]
+    if (len(b)-len(test))/len(b) >0.1 : # more than 10% zeroed !
+        audittrail( audit, "text","dataset is compressed - noise estimate is approximate")
+        test = test[ (test-test.mean()) < 5*test.std() ]
+        threshold = test.std()*float(parameters['peakpicking_noise_level'])/3
+        data.set_unit('m/z').peakpick(threshold=threshold, verbose=False, zoom=parameters['zoom'])
+    else:
+        data.set_unit('m/z').peakpick(autothresh=float(parameters['peakpicking_noise_level']), verbose=False, zoom=parameters['zoom'])
     if parameters['centroid'] == 'Yes':
         data.centroid()
     # compute unique file name 
