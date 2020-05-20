@@ -317,9 +317,11 @@ class IFTMS(object):
             with self.waitarea:
                 print('Error while loading',self.selected)
                 self.waitarea.clear_output(wait=True)
+            with self.outinfo:
+                traceback.print_exc()
             return
         data = None
-        DATA.filename = self.selected
+        DATA.filename = self.selected      # filename and fullpath are equivalent !
         DATA.fullpath = fullpath
         DATA.set_unit('m/z')
         self.datap = Dataproc(data)
@@ -340,9 +342,11 @@ class IFTMS(object):
             with self.waitarea:
                 print('Error while loading -',self.selected)
                 self.waitarea.clear_output(wait=True)
+            with self.outinfo:
+                traceback.print_exc()
             return
         data.filename = self.selected
-        data.fullpath = fullpath
+        data.fullpath = fullpath      # filename and fullpath are equivalent !
         data.set_unit('sec')
         with self.fid:
             data.display(title=self.title,new_fig={'figsize':(10,5)})
@@ -359,12 +363,24 @@ class IFTMS(object):
         self.wait()
         audit = U.auditinitial(title="Save file", append=True)
         # find name
-        fullpath = self.selected
-        # increment filename to find an available name
+        try:
+            fullpath = self.datap.DATA.fullpath
+        except:
+            self.waitarea.clear_output(wait=True)
+            with self.waitarea:
+                print('No processed dataset to save')
+                self.waitarea.clear_output(wait=True)
+            return
+        # Build name - first base
+        if not op.isdir(fullpath):             # one never knows
+            dirpath = op.dirname(fullpath)
+        else:
+            dirpath = fullpath
+        # then- increment filename to find an available name
         i = 1
         ok = False
         while not ok:
-            expname = op.join(fullpath,'Processed_%d.msh5'%(i))
+            expname = op.join(dirpath,'Processed_%d.msh5'%(i))
             if op.exists(expname):
                 i += 1
             else:
