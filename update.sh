@@ -1,5 +1,5 @@
-# update of 19 May 2020
-echo update of 19 May 2020
+# update of 21 May 2020
+echo update of 21 May 2020
 # clean
 find $HOME -path '*.pyc' -delete
 mkdir -p prev_ipynb
@@ -19,3 +19,6 @@ mv EasyDisplayLCFTICR.ipynb    ../LCMS_Tool.ipynb
 mv EasyProcessFTICR-MS.ipynb  ../Process_Tool.ipynb
 
 cd ..
+
+# then show version numbers
+python -m EUFT_Spike 
