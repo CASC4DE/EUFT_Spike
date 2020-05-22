@@ -154,6 +154,7 @@ def main():
     if args.no_action:
         NO_ACTION = True
 
+    print (datetime.now().isoformat(), end=' : ')
     all_files(args.base_directory)
 
 if __name__ == '__main__':
