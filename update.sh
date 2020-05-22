@@ -1,14 +1,17 @@
-# update of 21 May 2020
-echo update of 21 May 2020
-# clean
+# update of 22 May 2020
+echo update of 22 May 2020
+
+echo "=== cleaning previous stuff"
 find $HOME -path '*.pyc' -delete
 mkdir -p prev_ipynb
 mv *.ipynb prev_ipynb
 
 # update
 # spike
+echo "=== update spike"
 pip --log pip.log install --user -U spike-py
 # EU tools
+echo "=== update EU tools"
 cd EUFT_Spike
 fossil revert
 fossil update
@@ -20,5 +23,10 @@ mv EasyProcessFTICR-MS.ipynb  ../Process_Tool.ipynb
 
 cd ..
 
+echo "=== update crontab"
+python EUFT_Spike/install_cron.py
+
 # then show version numbers
+
+echo "=== Done"
 python -m EUFT_Spike 
