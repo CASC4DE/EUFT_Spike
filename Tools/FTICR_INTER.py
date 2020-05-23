@@ -22,12 +22,16 @@ import ipywidgets as widgets
 from IPython.display import display, Markdown, HTML, Image
 import numpy as np
 
+import spike
 from spike import FTICR
 from spike.NPKData import flatten, parsezoom
 from spike.FTMS import FTMSData
 from spike.FTICR import FTICRData
 from spike.File import BrukerMS
 from . import utilities as U
+
+
+# Statix info
 
 # REACTIVE modify callback behaviour
 # True is good for inline mode / False is better for notebook mode
@@ -39,6 +43,33 @@ BASE = 'FTICR_DATA'              # name of the
 SIZEMAX = 8*1024*1024        # largest zone to display
 NbMaxDisplayPeaks = 200      # maximum number of peaks to display at once
 version = "1.0.02"
+
+def about():
+    'returns the about string in Markdown'
+    val = '''This program is developped by [CASC4DE](www.casc4de.eu) and is based on 
+- the [Spike](https://forum.casc4de.eu/p/2-spike) processing program,
+- the [scientific python](https://www.scipy.org/) language,
+- the [Jupyter](https://jupyter.org/) graphic environment,
+and the [Voilà](https://github.com/voila-dashboards/voila) dashboard system.
+
+### Current Version
+- spike version: {0}
+- interface version: {1}
+
+### Release notes
+- 1.0.02 - 23 May 2020
+    - added this about page / release notes
+    - better error messages
+    - better audit trail for peak-picking
+    - improved online documentation
+    - corrected a bug while doing a peak-picking on stored datasets
+- 1.0.01 - 18 May 2020
+    - improved the file chooser, shows only relevent files
+    - corrected a bug while saving processed spectra from the old "Apex0" format (with 'acqus' file)
+- 1.0.0  - 28 Apr 2020  initial version
+
+'''.format(spike.version.version, version)
+    return val
 
 # TOOLS FOR 1D FTICR
 

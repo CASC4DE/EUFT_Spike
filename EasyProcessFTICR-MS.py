@@ -7,7 +7,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.4.0
+#       jupytext_version: 1.3.4
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -62,21 +62,11 @@ def dodoc(md):
     with out:
         display(Markdown(md))
     return out
-info = dodoc('''This program is developped by [CASC4DE](www.casc4de.eu) and is based on 
-- the [Spike](https://forum.casc4de.eu/p/2-spike) processing program,
-- the [scientific python](https://www.scipy.org/) language,
-- the [Jupyter](https://jupyter.org/) graphic environment,
-and the [Voilà](https://github.com/voila-dashboards/voila) dashboard system.
-
-### Current Version
-- spike version: %s
-- interface version: %s
-'''%(spike.version.version, FI.version))
-
+info = dodoc(FI.about())
 doc = dodoc('''# DOCUMENTATION
 
 
-This program allows to process and analyse **MS FTICR** data-sets, i.e. raw transients
+This program allows to process and analyze **MS FTICR** data-sets, i.e. raw transients
 as obtained from the FTICR machine.
 
 The program allows process the transients, detect peaks, interact with the spectrum,
@@ -91,11 +81,11 @@ These files use the standard
 
 Only files in the seafile deposit can be handled.
 
-Simply close the window to exist the program
+Simply close the window to exit the program
 
-## Standard Operation:
+## Standard Operations:
 #### Choose a file
-Only files in the seafile deposit can be handled.
+Only files in the SeaDrive deposit can be handled.
 Use  the selector to choose an experiment.
 Bruker `experiment.d` contains the raw transiens, and `.msh5` files are previously processed an stored data.
 
@@ -121,11 +111,11 @@ stores a `.msh5` file into the initial `experiment.d` firectory
 Simply close the window to exist the program
 
 ## Tab Panels
-- raw fid: the transient, if loaded
-- Spectrum: the processed spectrum, if computed
-- Peak list: the peak list, if computed - can be exported in csv format
-- Processing Parameters: all the parameters used for the processing: 
-- Info: details on the experiment and Processing audit trails
+- `raw fid`: the transient, if loaded
+- `Spectrum`: the processed spectrum, if computed
+- `Peak list`: the peak list, if computed - is also exported in csv format into the dataset directory
+- `Processing Parameters`: all the parameters used for the processing: 
+- `Info`: details on the experiment and Processing audit trails
 
 ## display
 Figures can be interactively explored with the jupyter tools displayed  on the side of the dataset.
@@ -139,10 +129,45 @@ and
 <button class="jupyter-matplotlib-button jupyter-widgets jupyter-button" href="#" title="Forward to next view" style="outline: currentcolor none medium;"><i class="center fa fa-arrow-right"></i></button>
 allow to navigate in the zoom history
 
-The drawing zone can be resized using the little grey triangle on the lower-right corner
+The drawing zone can be resized using the little gray triangle on the lower-right corner
 
 Figures can also be saved as a `png` graphic file with
 <button class="jupyter-matplotlib-button jupyter-widgets jupyter-button" href="#" title="Download plot" style="outline: currentcolor none medium;"><i class="center fa fa-floppy-o"></i></button>
+
+## Processing Parameters
+A few processing parameters can be adapted:
+- **center fid**:    default: Yes <br>
+  because of an eventual offset in the electronic, the experimental 'FID' might not be centered
+  on the null value, but on some artefactual value.
+  Removing this artefact before Fourier Transform may improve the spectral quality
+- **apod todo**: default: hamming <br>
+  The choice of the apodisation (windowing) function:
+    - hamming: provides good resolution and SNR at the price of wiggles at the feet of large peaks
+    - hanning: provides low wiggles at the price of lower resolution and SNR
+    - kaiser: a family of parametric windows of optimized apodisation, 
+        - 3.5: best possible resolution and SNR at the price of wiggles at the feet of large peaks
+        - 5: Similar to Hamming
+        - 6: Similar to Hanning
+        - 8: very low wiggles, for resolution and SNR close to Hanning
+- **baseline todo**: default: offset<br>
+    removes the offset on the final spectrum 
+- **grass noise todo**: default: "Only when storing file"<br>
+    Set points below a certain level (see grass noise level below) to zero.
+    Allows to efficiently compress saved dataset, but looses information 
+- **grass noise level**: default: 3.0<br>
+    the level for "grass noise" removal is taken as the standard deviation of the baseline signal ( 𝜎 )
+    multiplied by this coefficient. So default is 3𝜎.
+- **peakpicking**: default: Manually<br>
+    when to do peak picking, on demand or automatically after FT
+- **peakpicking noise level**: default: 10.0<br>
+    when doing peak picking, all peaks above a threshold expressed as a ratio above the noise level 𝜎 is detected.
+    so default is 10𝜎 (which is quite low).
+- **centroid**: default: No<br>
+    after peak picking, a centroid is computed, it permits to improve the value of the position, and estimates its width.
+- **max peak disp**: default: 200<br>
+    when many peaks are detected, the display of all the peaks becomes very slow, so only this many peaks 
+    are shown, showing only the highest peaks. Will be redisplayed for each new zoom window.
+    To adapt to your local set-up.
 
 ## Calibration
 The calibration used by SPIKE is based on a 2 or 3 parameters equation :
@@ -151,7 +176,8 @@ The calibration used by SPIKE is based on a 2 or 3 parameters equation :
 
 where *A* *B* and *C* are imported from the Bruker `ML1` `ML2` `ML3` parameters.
 
-**Be carefull** Bruker uses a sign inversion on `ML2` depending on the value of `ML3` - this is not used, and the equation is allwas the same.
+**Be carefull** Bruker uses a sign inversion on `ML2` depending on the value of `ML3` 
+- this is not used, and the equation is allways the same.
 
 This set-up will be changed in the future for a more flexible and robust set-up
 ''')
@@ -163,7 +189,7 @@ This is a temporary version.
 expect improvements, as certain parts are still in development
 - precise *m/z* calibration
 - more efficient peak-picking
-- export to mzml and csv
+- export to mzml
 - superimposition of several spectra
 - storage of the audit-trail
 - ...
