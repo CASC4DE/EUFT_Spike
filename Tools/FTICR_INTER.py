@@ -52,6 +52,8 @@ def about():
 - the [Jupyter](https://jupyter.org/) graphic environment,
 and the [Voilà](https://github.com/voila-dashboards/voila) dashboard system.
 
+For questions and more information check the [dedicated forum](https://forum.casc4de.eu/t/eu-fticr-ms)
+
 ### Current Version
 - spike version: {0}
 - interface version: {1}
