@@ -67,7 +67,7 @@ EUFT_Spike/clean_plugins.sh
 if [ -f "FTICR_DATA" ] ; then
     echo "FTICR_DATA present"
 else
-    ln -s SeaDrive/My_libraries/ FTICR_DATA
+    ln -s SeaDrive/ FTICR_DATA
 fi
 
 # pour les taches automatiques

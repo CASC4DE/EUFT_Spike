@@ -1,7 +1,7 @@
 # update of a user account already installed
 # update of 22 May 2020
 
-echo update of 22 May 2020
+echo update of 27 May 2020
 
 echo "=== cleaning previous stuff"
 find $HOME -path '*.pyc' -delete
@@ -27,6 +27,7 @@ cd ..
 # pour enlever les plugins inutiles:
 EUFT_Spike/clean_plugins.sh
 
+# install crontab
 echo "=== update crontab"
 python EUFT_Spike/install_cron.py
 

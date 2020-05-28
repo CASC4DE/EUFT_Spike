@@ -17,13 +17,9 @@ from pathlib import Path
 from pprint import pprint
 #import configparser
 import ImportLCmp as Import
-import metafile_v0 as metaf
 #import processing_4EU as proc2D
 
-#import ImportLC
-
-#from ImportLC import Import_and_Process_LC
-BASE = '/DATA' #'/media/mad/extfat/DATA/FT-ICR' #'/DATA' #'FTICR_DATA' 
+BASE = 'FTICR_DATA' #'/media/mad/extfat/DATA/FT-ICR' #'/DATA' #'FTICR_DATA' 
 version = "1.0.0"
 
 ##### CONFIGURATION ############
@@ -36,7 +32,7 @@ DOIT_CONFIG = {
     # any change in the date will trigger execution - more greedy, but faster than MD5.
     'check_file_uptodate': 'timestamp',
     # output from actions should be sent to the terminal/console
-    'verbosity': 2,
+    'verbosity': 1,
     # does not stop execution on first task failure
     'continue': True,
     # doit should only report on executed actions
@@ -46,9 +42,9 @@ DOIT_CONFIG = {
 }
 if not DEBUG:
     DOIT_CONFIG['reporter'] = 'executed-only'
-    DOIT_CONFIG['verbosity'] = 3
+    DOIT_CONFIG['verbosity'] = 2
 else:
-    DOIT_CONFIG['reporter'] = 'json'# 'json'
+    DOIT_CONFIG['reporter'] = 'executed-only' #'json'
 
 
 ######## Tools ##############################
@@ -82,20 +78,6 @@ def get_LCtodo(loc=BASE):
         pprint([str(i.parent.name) for i in toproc])
     return toproc
 
-def get_metatodo(loc=BASE):
-    """
-    returns the list of all ser and fid
-    """
-    toproc = []
-    for ff in Path(loc).glob("**/ser"):
-        toproc.append(ff)
-    for ff in Path(loc).glob("**/fid"):
-        toproc.append(ff)
-    if DEBUG: 
-        print('get_metatodo')
-        pprint([str(i.parent.name) for i in toproc])
-    return toproc
-
 ############## Tasks #######################
 def _task_2Dprocess():
     "process 2D experiment from the processing*.mscf files"
@@ -121,16 +103,16 @@ def _task_2Dprocess():
         yield ans
 
 def task_LCprocess():
-    "process 2D experiment from the processing*.mscf files"
+    "process LC experiment from the import*.mscf files"
     for ff in get_LCtodo():
         config = Import.Proc_Parameters(ff)
         name = str(ff)
         ser = ff.parent/'ser'
         outname = config.fulloutname
-        if DEBUG: print (config.report())
-        action = "python ImportLCmp.py -d %s"%(ff)
+        #if DEBUG: print (config.report())
+        action = ["python", "EUFT_Spike/ImportLCmp.py", "-d", ff]
         if DEBUG:
-            action = "echo "+action
+            action = ["echo"]+action
         ans = {
             'name': outname,  # name required to identify tasks
             'file_dep': [ser, ff],  # file dependency
@@ -139,8 +121,8 @@ def task_LCprocess():
             # If a target doesn’t exist the task will be executed.
             'actions': [action]
         }
-        if DEBUG:
-            print("TASK:")
-            pprint(ans)
+        # if DEBUG:
+        #     print("TASK:")
+        #     pprint(ans)
         yield ans
 
