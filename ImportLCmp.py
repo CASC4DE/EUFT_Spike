@@ -26,6 +26,15 @@ import array
 import numpy as np
 from xml.etree import cElementTree as ET
 
+#################### set MKL number threads to 1 ##########
+import ctypes
+mkl_rt = ctypes.CDLL('libmkl_rt.so')
+mkl_get_max_threads = mkl_rt.mkl_get_max_threads
+def mkl_set_num_threads(cores):
+    mkl_rt.mkl_set_num_threads(ctypes.byref(ctypes.c_int(cores)))
+
+mkl_set_num_threads(1)
+
 # #####################################################
 # # This code allows to pickle methods, and thus to use multiprocessing on methods
 # # This very nice trick comes from :
@@ -354,7 +363,7 @@ class Proc_Parameters(object):
             self.compress_level = cp['processing'].getfloat("compress_level", 3.0)
             self.downSampling = cp['processing'].getboolean("downsampling", "True")
             self.erase = cp['processing'].getboolean("erase", "True")
-            self.mp = cp['processing'].getint("multiprocessing", 1)
+            self.mp = cp['processing'].getint("multiprocessing", self.mp)
             if self.infilename is None:
                 self.infilename = os.path.dirname(self.paramfile)
             if self.outfile is None:
@@ -372,7 +381,7 @@ class Proc_Parameters(object):
         return dd
     def report(self):
         "print a report"
-        print('------------------------')
+        print('----- Parameters -------')
         for (nm,val) in self.todic().items():
             print(nm, ':', val)
         print('fulloutname :', self.fulloutname)
@@ -444,9 +453,10 @@ def main():
         parser.print_help(sys.stderr)
         sys.exit(1)
 
+    param.report()
+
     if args.dry:
         print(sys.argv[0],'dry run:')
-        param.report()
         sys.exit(0)
 
     t0 = time.time()
