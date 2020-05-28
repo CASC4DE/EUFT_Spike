@@ -23,6 +23,8 @@ import sys
 import os
 import math
 import array
+from datetime import datetime
+
 import numpy as np
 from xml.etree import cElementTree as ET
 
@@ -453,6 +455,7 @@ def main():
         parser.print_help(sys.stderr)
         sys.exit(1)
 
+    print (datetime.now().isoformat())
     param.report()
 
     if args.dry:
@@ -468,4 +471,5 @@ def main():
     print('Processing took %.2f minutes'%(elaps/60))
 
 if __name__ == '__main__':
+
     sys.exit(main())
