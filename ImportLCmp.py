@@ -346,7 +346,7 @@ class Proc_Parameters(object):
         if configfile is not None:
             self.paramfile = configfile
             cp = NPKConfigParser()
-            print('parameter file is ', configfile)
+            #print('parameter file is ', configfile)
             cp.read_file(open(configfile,'r'))
             self.outfile = cp['processing'].get("outfile", None)
             self.infilename = cp['processing'].get("importBrukfolder", None)

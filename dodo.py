@@ -16,6 +16,7 @@ from __future__ import print_function
 from pathlib import Path
 from pprint import pprint
 #import configparser
+from doit.action import CmdAction
 import ImportLCmp as Import
 #import processing_4EU as proc2D
 
@@ -110,7 +111,7 @@ def task_LCprocess():
         ser = ff.parent/'ser'
         outname = config.fulloutname
         #if DEBUG: print (config.report())
-        action = ["python", "EUFT_Spike/ImportLCmp.py", "-d", ff]
+        action = ["python", "EUFT_Spike/ImportLCmp.py", "-d", str(ff)]
         if DEBUG:
             action = ["echo"]+action
         ans = {
@@ -119,7 +120,7 @@ def task_LCprocess():
             'targets': [outname],
             # In case there is no modification in the dependencies and the targets already exist, it skips the task.
             # If a target doesn’t exist the task will be executed.
-            'actions': [action]
+            'actions': [CmdAction(action, buffering=1, shell=False)]
         }
         # if DEBUG:
         #     print("TASK:")
