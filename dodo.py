@@ -111,7 +111,7 @@ def task_LCprocess():
         ser = ff.parent/'ser'
         outname = config.fulloutname
         #if DEBUG: print (config.report())
-        action = ["python", "EUFT_Spike/ImportLCmp.py", "-d", str(ff)]
+        action = ["/opt/anaconda3/bin/python", "EUFT_Spike/ImportLCmp.py", "-d", str(ff)]
         if DEBUG:
             action = ["echo"]+action
         ans = {
