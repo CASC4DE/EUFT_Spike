@@ -205,7 +205,7 @@ class MR(object):
 
 def different(a,b):
     "True if more than x% different"
-    return abs( 2*(a-b)/(a+b)) > 0.05
+    return abs( 2*(a-b)/(a+b)) > 0.02
 class MR_interact(MR):
     def __init__(self, name, figsize=(15,6), report=True, show=True, Debug=DEBUG):
         """
@@ -892,6 +892,8 @@ class MS2Dscene(object):
             with self.waitarea:
                 print('Error while loading',self.selected, 'file not found or wrong format')
                 self.waitarea.clear_output(wait=True)
+            with self.outinfo:
+                traceback.print_exc()
             return
         with self.out2D:
             clear_output(wait=True)

@@ -42,7 +42,7 @@ DEBUG = False
 BASE = 'FTICR_DATA'              # name of the 
 SIZEMAX = 8*1024*1024        # largest zone to display
 NbMaxDisplayPeaks = 200      # maximum number of peaks to display at once
-version = "1.0.02"
+version = "1.0.03"
 
 def about():
     'returns the about string in Markdown'
@@ -59,6 +59,9 @@ For questions and more information check the [dedicated forum](https://forum.cas
 - interface version: {1}
 
 ### Release notes
+- 1.0.03 - xxx
+    - improved error messages in metadata generation
+    - better handling of error on files
 - 1.0.02 - 23 May 2020
     - added this about page / release notes
     - better error messages
@@ -164,7 +167,11 @@ class FileChooser(VBox):
             else:
                 toreturn = '???'
         elif path.suffix == '.msh5':
-            d = FTICRData(name=str(path), mode='onfile')
+            try:
+                print(path)
+                d = FTICRData(name=str(path), mode='onfile')
+            except:
+                return '???'
             if d.dim == 1:
                 toreturn = 'MS'
             elif d.dim == 2:

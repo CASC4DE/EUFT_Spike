@@ -21,7 +21,7 @@
 # %%
 # adapt sys.path to local env
 import sys, os
-if os.uname().nodename == 'madMacBook':
+if os.uname().nodename == 'madMacBook':  # a switch for the development environment
     print('on my Mac')
     os.chdir('..')
 else:
@@ -62,6 +62,7 @@ def dodoc(md):
     with out:
         display(Markdown(md))
     return out
+
 info = dodoc(FI.about())
 doc = dodoc('''# DOCUMENTATION
 
@@ -69,7 +70,7 @@ doc = dodoc('''# DOCUMENTATION
 This program allows to process and analyze **MS FTICR** data-sets, i.e. raw transients
 as obtained from the FTICR machine.
 
-The program allows process the transients, detect peaks, interact with the spectrum,
+The program allows to process transients, detect peaks, interact with the spectrum,
 and store the final result.
 A signed audit travail of the processing is maintained, in order to insure a complete reproducibility of the process.
 
@@ -77,7 +78,7 @@ There is no theoretical limit on the size of the data-set to process and visuali
 
 The result of the processing is stored in a `*.msh5` file with the same filename than the Bruker directory.
 These files use the standard 
-[HDF5 format](https://www.hdfgroup.org/solutions/hdf5), and can be read with any program able to access this format.
+[HDF5 format](https://www.hdfgroup.org/solutions/hdf5), and can be read with any program able to access this open format.
 
 Only files in the seafile deposit can be handled.
 

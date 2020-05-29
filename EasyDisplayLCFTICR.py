@@ -23,7 +23,7 @@
 # %%
 # adapt sys.path to local env
 import sys, os
-if os.uname().nodename == 'madMacBook':
+if os.uname().nodename == 'madMacBook':  # a switch for the development environment
     print('on my Mac')
     os.chdir('..')
 else:
@@ -69,15 +69,11 @@ def dodoc(md):
         display(Markdown(md))
     return out
 
+info = dodoc(FI.about())
 doc = dodoc('''# DOCUMENTATION
 
 This program allows to analyse **LC-MS FTICR** data-sets, i.e. a series of MS spectra acquired during a chromatography run.
 The information is bi-dimensional, with one chromatographic axis and one MS axis.
-
-It is based on the [Spike](https://forum.casc4de.eu/p/2-spike) processing program,
-the [scientific python](https://www.scipy.org/) language,
-the [Jupyter](https://jupyter.org/) graphic environment,
-and the [Voilà](https://github.com/voila-dashboards/voila) dashboard system.
 
 The program allows to look at the whole data at once, as well as extracting MS spectra at a given retention time,
 or a chromatogram extracted at a given *m/z*.
@@ -88,7 +84,7 @@ expect a few hours for the processing to be performed.
 There is no theoretical limit on the size of the data-set to process and visualize. 
 The result of the processing is stored in a `*.msh5` file with the same filename than the Bruker directory.
 These files use the standard 
-[HDF5 format](https://www.hdfgroup.org/solutions/hdf5), and can be read with any program able to access this format.
+[HDF5 format](https://www.hdfgroup.org/solutions/hdf5), and can be read with any program able to access this open format.
 
 Only files in the seafile deposit can be handled.
 
@@ -193,9 +189,10 @@ expect improvements, as certain parts are still in development
 - ...
 ''')
 
-accordion = widgets.Accordion(children=[doc, comment])
-accordion.set_title(0,'Documentation')
-accordion.set_title(1,'Comments')
+accordion = widgets.Accordion(children=[info, doc, comment])
+accordion.set_title(0,'About')
+accordion.set_title(1,'Documentation')
+accordion.set_title(2,'Comments')
 accordion.selected_index = None
 accordion
 
