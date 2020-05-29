@@ -43,6 +43,7 @@ def generate_metafile(bruker_dir, jsonfile=None):
     except:
         print('**** Action failed on ', bruker_dir)
         dico = None
+        done = 0
 
     if jsonfile is None:
         jsonfile = metaname(bruker_dir)
@@ -56,6 +57,8 @@ def generate_metafile(bruker_dir, jsonfile=None):
         if dico is not None:
             with open(jsonfile, 'w') as outfile:  
                 json.dump(dico, outfile, indent=2)
+            done = 1
+    return done
 
 def generate_dico(bruker_dir):
     """
@@ -131,11 +134,12 @@ def all_files(basedir):
     "goes through all .d directories and create missing metadata files"
     count = 0
     for f in Path(basedir).glob('**/*.d'):
-        metafile = metaname(f)
-        if not os.path.exists(metafile):
-            if DEBUG: print(f)
-            generate_metafile(f, jsonfile=metafile)
-            count += 1
+        if (f/'fid').exists() or (f/'ser').exists():
+            metafile = metaname(f)
+            if not os.path.exists(metafile):
+                if DEBUG: print(f)
+                done = generate_metafile(f, jsonfile=metafile)
+                count += done
     print ('generated %d meta files'%count)
 
 def main():
