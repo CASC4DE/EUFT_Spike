@@ -43,6 +43,9 @@ import EUFT_Spike.Tools.FTICR_INTER as FI
 
 
 # %%
+pwd
+
+# %%
 # launch
 #display(Markdown('## ... program is Ready'))
 #I.hidecode(initial='show', message=False)

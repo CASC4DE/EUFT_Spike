@@ -60,6 +60,14 @@ reload(LCI)                   # and can be removed safely when in production
 mr = LCI.MS2Dscene(Debug=False)
 
 # %%
+pwd
+
+# %%
+nm = "MS Spectrum extracted from 1.54 to 2.33 minute"
+nm = nm.replace(' ','_')
+nm
+
+# %%
 # improve display of docu.
 from IPython.display import display, Markdown
 import ipywidgets as widgets
@@ -69,7 +77,7 @@ def dodoc(md):
         display(Markdown(md))
     return out
 
-info = dodoc(FI.about())
+info = dodoc(LCI.FI.about())
 doc = dodoc('''# DOCUMENTATION
 
 This program allows to analyse **LC-MS FTICR** data-sets, i.e. a series of MS spectra acquired during a chromatography run.
@@ -199,9 +207,7 @@ accordion
 # %%
 todo = '''# TODO
 ### importer
-- acces au TIC
 - pb d'axe de la projection
-- doit et automation
 - pp !!!
 - sauver les 1D
 

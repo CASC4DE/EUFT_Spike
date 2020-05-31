@@ -26,6 +26,37 @@ def loadjson(filename):
                 c.append(l)
     return json.loads("".join(c))
 
+def find_free_filename(expname, basename, ext):
+    """
+    returns a filename, free in the sens the file does not exists yet
+    where
+    expname: the experiment filename fully qualitied
+    basename: the name of the created file - without extension
+    ext: the extension (wth the leading dot - not checked ! => can be empty)
+
+    expname is a dir =1 this one is used, if it is a file, its dirname is used
+    if dirname / basename  ext exists, a _%d sffix is added to basename until a free name is found
+    """
+    if not op.isdir(expname):
+        dirpath = op.dirname(expname)
+    else:
+        dirpath = expname
+
+    filename = op.join(dirpath, basename + ext)
+
+    if op.exists(filename):
+        # then- increment filename to find an available name
+        i = 1
+        ok = False
+        fnm = basename + '_%02d'
+        while not ok:
+            filename = op.join(dirpath,fnm%(i) + ext)
+            if op.exists(filename):
+                i += 1
+            else:
+                ok = True
+    return filename
+
 ####################
 # ##   NMR  #########
 # ###################
@@ -316,18 +347,9 @@ def peakpick_ms1d(data, parameters):
     if parameters['centroid'] == 'Yes':
         data.centroid()
     # compute unique file name 
-    if op.isdir(data.fullpath):     # typically *.d
-        fnamehi = op.join( data.fullpath,'peaklist_%d.html')
-        fnameci = op.join( data.fullpath,'peaklist_%d.csv')
-    else:                           # typically *.msh5
-        fnamehi = op.splitext(data.fullpath)[0] + '_peaklist_%d.html'
-        fnameci = op.splitext(data.fullpath)[0] + '_peaklist_%d.csv'
-    # find a slot
-    i = 1
-    while op.exists(fnamehi%i) or op.exists(fnameci%i):
-        i += 1
-    fnameh = fnamehi%i
-    fnamec = fnameci%i
+
+    fnameh = find_free_filename(data.fullpath, 'peaklist', '.html')
+    fnamec = fnameh.replace('.html', '.csv')
     print(fnameh)
     # create files
     with open(fnameh,'w') as F:

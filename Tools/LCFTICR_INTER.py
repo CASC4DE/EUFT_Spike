@@ -13,11 +13,11 @@ and the notebook to be opened with %matplotlib widget
 """
 import os.path as op
 from pathlib import Path
-import time
+import traceback
 import tables
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from ipywidgets import interact, fixed, HBox, VBox, GridBox, Label, Layout, Output, Button
+from ipywidgets import HBox, VBox, Layout, Output, Button
 import ipywidgets as widgets
 from IPython.display import display, Markdown, HTML, Image, clear_output
 import numpy as np
@@ -25,11 +25,9 @@ from xml.etree import cElementTree as ET
 
 from spike import FTICR
 from spike.NPKData import flatten, parsezoom, TimeAxis
-from spike.Interactive.ipyfilechooser import FileChooser
-from spike.FTMS import FTMSData
-from spike.FTICR import FTICRData
 from spike.File.HDF5File import HDF5File
 from . import FTICR_INTER as FI
+from . import utilities as U
 
 # REACTIVE modify callback behaviour
 # True is good for inline mode / False is better for notebook mode
@@ -378,10 +376,11 @@ class LC1D(VBox):
     """
     Define a tool to explore slices extracted from a LC-MS experiment
     """
-    def __init__(self, MRdata=None, show=True, Debug=DEBUG):
-        "MRData should be a MR() object"
+    def __init__(self, parent=None, MRdata=None, show=True, Debug=DEBUG):
+        "MRData should be a MR() object, parent is used for the peaklist and the wait area"
         super(LC1D, self).__init__()
         # initialize data
+        self.parent = parent
         self.MR = MRdata
         self.data = MRdata.data[0]
         self.sizeLC = self.data.size1
@@ -393,6 +392,7 @@ class LC1D(VBox):
         # current ones
         self.lc = None
         self.ms = None
+        self.s1D = None
 
         # then graphic
         self.fig = None
@@ -401,14 +401,45 @@ class LC1D(VBox):
         self.fig, self.ax = plt.subplots(figsize=(15,3))
         plt.ion()
         self.box = self.buildbox()
+
+        self.bpeak = Button(description='Peak Pick',layout=Layout(width='15%'),
+                tooltip='Detect Peaks')
+        self.bpeak.on_click(self.peakpick)
+        self.bsave = Button(description='Save',layout=Layout(width='15%'),
+                tooltip='Save processed data set in msh5 format')
+        self.bsave.on_click(self.save)
+        # GUI set-up and scene
+        # tools 
+        if self.parent is not None:  # then let's use its wait area
+            self.waitarea = parent.waitarea
+            self.outinfo = parent.outinfo
+            self.peaklist = parent.peaklist
+            self.buttonbar = HBox([self.bpeak, self.bsave])
+        else:
+            self.waitarea = Output()
+            self.outinfo = Output()
+            self.peaklist = Output()
+            self.buttonbar = HBox([self.bpeak, self.bsave, self.waitarea])
+
         if show:
             self.show()
+
+    def show(self):
+        "display the graphic widget"
+        display(self.buttonbar)
+        display(self.box)
+        self.displayLC()
+        if self.parent is None:    # this is temporary code !
+            display(self.peaklist)
+#        display(HTML('<p> </p>'))
+
     def wait(self):
         "show a little waiting wheel"
         here = Path(__file__).parent
         with open(here/"icon-loader.gif", "rb") as F:
-            self.wwait = widgets.Image(value=F.read(),format='gif',width=40)
-            display(self.wwait)
+            with self.waitarea:
+                self.wwait = widgets.Image(value=F.read(),format='gif',width=40)
+                display(self.wwait)
     def done(self):
         "remove the waiting wheel"
         self.wwait.close()
@@ -511,6 +542,7 @@ class LC1D(VBox):
             lc.mult(1/(iend-istart))  # take the mean
         lc.title = "Chrom. Profile extracted from %.4f to %.4f m/z"%(start,end)
         self.lc = lc
+        self.s1D = lc
         self.displayLC()
         self.done()
 
@@ -528,14 +560,66 @@ class LC1D(VBox):
             ms.mult(1/(iend-istart))  # take the mean
         ms.title = "MS Spectrum extracted from %.2f to %.2f minute"%(start,end)
         self.ms = ms
+        self.s1D = ms
         self.displayMS()
         self.done()
 
-    def show(self):
-        "display the graphic widget"
-        display(self.box)
-        self.displayLC()
-#        display(HTML('<p> </p>'))
+    def save(self, e):
+        "save 1D spectrum to msh5 file"
+        self.wait()
+        # find type
+        if self.s1D is None:
+            self.waitarea.clear_output(wait=True)
+            with self.waitarea:
+                print('No extracted dataset to save')
+                self.waitarea.clear_output(wait=True)
+
+        # find name
+        filename = U.find_free_filename(self.MR.name, self.s1D.title.replace(' ','_'), '.msh5')
+        
+        try:
+            self.s1D.save_msh5(filename)
+        except:
+            self.waitarea.clear_output(wait=True)
+            with self.waitarea:
+                print('Error while saving to file',filename)
+                self.waitarea.clear_output(wait=True)
+            with self.outinfo:
+                traceback.print_exc()
+            return
+
+        with self.outinfo:
+            display(Markdown("""# Save locally
+ Data set saved as "%s"
+ """%(filename,)))
+        self.done()
+        with self.waitarea:
+            print('Data-set saved')
+            self.waitarea.clear_output(wait=True)
+
+    def peakpick(self,e):
+        "do the peak-picking"
+        if self.s1D == None:
+            with self.waitarea:
+                print('Please exctract a dataset first')
+                self.waitarea.clear_output(wait=True)
+            return
+        self.wait()
+
+        self.peaklist.clear_output(wait=True)
+#        self.form2param()
+        parameters = {}
+        parameters['peakpicking_noise_level'] = 3.0
+        parameters['zoom'] = None
+        parameters['centroid'] = 'Yes'
+        self.MAX_DISP_PEAKS = 200
+        U.peakpick_ms1d(self.s1D, parameters)
+        with self.out1D:
+            self.s1D.display_peaks(peak_label=True ,NbMaxPeaks=self.MAX_DISP_PEAKS)
+        with self.peaklist:
+            display( Markdown('%d Peaks detected'%len(self.datap.DATA.peaks)) )
+            display(HTML(self.s1D.pk2pandas().to_html()))
+        self.done()
 
     def displayLC(self):
         "draws the LC data"   
@@ -563,216 +647,6 @@ class LC1D(VBox):
         else:
             display(HTML("<br><br><h3><i><center>No Data</center></i></h3>"))
 
-    def _display(self,mode='LC'):
-        "draws the data"   
-        if mode == 'LC':
-            try:
-                d = self.lc.copy()
-            except:
-                d = None
-        if mode == 'MS':
-            try:
-                d = self.ms.copy()
-            except:
-                d = None
-        self.ax.clear()
-        if d is not None:
-            if mode == 'LC' and self.smooth.value == 'Yes':
-                d.eroding().sg(21,11-self.SMstrength.value).plus()
-            d.display(figure=self.ax)
-        else:
-            display(HTML("<br><br><h3><i><center>No Data</center></i></h3>"))
-
-class MSPeaker(object):
-    "a peak-picker for MS experiments"
-    def __init__(self, npkd, pkname):
-        if not isinstance(npkd, FTMSData):
-            raise Exception('This modules requires a FTMS Dataset')
-        self.npkd = npkd
-        self.pkname = pkname
-        self.zoom = widgets.FloatRangeSlider(value=[npkd.axis1.lowmass, npkd.axis1.highmass],
-            min=npkd.axis1.lowmass, max=npkd.axis1.highmass, step=0.1,
-            layout=Layout(width='100%'), description='zoom',
-            continuous_update=False, readout=True, readout_format='.1f',)
-        self.zoom.observe(self.display)
-        self.tlabel = Label('threshold (x noise level):')
-        self.thresh = widgets.FloatLogSlider(value=20.0,
-            min=np.log10(1), max=2.0, base=10, step=0.01, layout=Layout(width='30%'),
-            continuous_update=False, readout=True, readout_format='.1f')
-        self.thresh.observe(self.pickpeak)
-        self.peak_mode = widgets.Dropdown(options=['marker', 'bar'],value='marker',description='show as')
-        self.peak_mode.observe(self.display)
-        self.bexport = widgets.Button(description="Export",layout=Layout(width='7%'),
-                button_style='success', # 'success', 'info', 'warning', 'danger' or ''
-                tooltip='Export to csv file')
-        self.bexport.on_click(self.pkexport)
-        self.bprint = widgets.Button(description="Print", layout=Layout(width='7%'),
-                button_style='success', tooltip='Print to screen')
-        self.bprint.on_click(self.pkprint)
-        self.bdone = widgets.Button(description="Done", layout=Layout(width='7%'),
-                button_style='warning', tooltip='Fix results')
-        self.bdone.on_click(self.done)
-        #self.spec = Output(layout={'border': '1px solid black'})
-        self.out = Output(layout={'border': '1px solid red'})
-        display( VBox([self.zoom,
-                      HBox([self.tlabel, self.thresh, self.peak_mode, self.bprint, self.bexport, self.bdone])
-                      ]) )
-        self.fig, self.ax = plt.subplots()
-        self.npkd.set_unit('m/z').peakpick(autothresh=self.thresh.value, verbose=False, zoom=self.zoom.value).centroid()
-        self.display()
-        display(self.out)
-
-    def pkprint(self,event):
-        self.out.clear_output(wait=True)
-        with self.out:
-            display(HTML(self.npkd.pk2pandas().to_html()))
-            #print(self.pklist())
-    def pkexport(self,event):
-        "exports the peaklist to file"
-        with open(self.pkname,'w') as FPK:
-            print(self.pklist(),file=FPK)
-        print('Peak list stored in ',self.pkname)
-    def pklist(self):
-        "creates peaklist"
-        text = ["m/z\t\tInt.(%)\tR\tarea(a.u.)"]
-        data = self.npkd
-        intmax = max(data.peaks.intens)/100
-        for pk in data.peaks:
-            mz = data.axis1.itomz(pk.pos)
-            Dm = 0.5*(data.axis1.itomz(pk.pos-pk.width) - data.axis1.itomz(pk.pos+pk.width))
-            area = pk.intens*Dm
-            l = "%.6f\t%.1f\t%.0f\t%.0f"%(mz, pk.intens/intmax, round(mz/Dm,-3), area)
-            text.append(l)
-        return "\n".join(text)
-    def display(self, event={'name':'value'}):
-        "display spectrum and peaks"
-        if event['name']=='value':  # event is passed by GUI - make it optionnal
-            self.ax.clear()
-            self.npkd.display(new_fig=False, figure=self.ax, zoom=self.zoom.value)
-            try:
-                self.npkd.display_peaks(peak_label=True, peak_mode=self.peak_mode.value, figure=self.ax, zoom=self.zoom.value, NbMaxPeaks=NbMaxDisplayPeaks)
-                x = self.zoom.value
-                y = [self.npkd.peaks.threshold]*2
-                self.ax.plot(x,y,':r')
-                self.ax.annotate('%d peaks detected'%len(self.npkd.peaks) ,(0.05,0.95), xycoords='figure fraction')
-            except:
-                pass
-    def pickpeak(self, event):
-        "interactive wrapper to peakpick"
-        if event['name']=='value':
-            self.pp()
-    def pp(self):
-        "do the peak-picking calling pp().centroid()"
-        #self.spec.clear_output(wait=True)
-        self.npkd.set_unit('m/z').peakpick(autothresh=self.thresh.value, verbose=False, zoom=self.zoom.value).centroid()
-        self.display()
-    def done(self, event):
-        "exit GUI"
-        for w in [self.zoom, self.thresh, self.peak_mode, self.bprint, self.bexport, self.bdone]:
-            w.close()
-        self.tlabel.value = "threshold %.2f noise level"%self.thresh.value
-#        self.display()
-
-class Calib(object):
-    "a simple tool to show and modify calibration cste"
-    def __init__(self, data):
-        self.data = data
-        self.res = [data.axis1.calibA, data.axis1.calibB, data.axis1.calibC]
-        self.A = widgets.FloatText(value=data.axis1.calibA, description="A")
-        self.B = widgets.FloatText(value=data.axis1.calibB, description="B")
-        self.C = widgets.FloatText(value=data.axis1.calibC, description="C")
-        self.bupdate = widgets.Button(description="Update",
-                button_style='success', # 'success', 'info', 'warning', 'danger' or ''
-                tooltip='set current data-sets to displayed values')
-        self.bupdate.on_click(self.update)
-        self.bback = widgets.Button(description="Restore",
-                button_style='success', # 'success', 'info', 'warning', 'danger' or ''
-                tooltip='restore dataset to initial values')
-        self.bback.on_click(self.back)
-        display(VBox([  HBox([self.A, widgets.Label('Hz/Th')]),
-                        HBox([self.B, widgets.Label('Hz')]),
-                        HBox([self.C, widgets.Label('Hz/Th^2')]),
-                        HBox([self.bupdate, self.bback])]))
-    def update(self,event):
-        self.data.axis1.calibA = self.A.value
-        self.data.axis1.calibB = self.B.value
-        self.data.axis1.calibC = self.C.value
-        print("Set - don't forget to rerun the Peak Picker")
-    def back(self,event):
-        self.data.axis1.calibA = self.res[0]
-        self.data.axis1.calibB = self.res[1]
-        self.data.axis1.calibC = self.res[2]
-        self.A.value = self.res[0]
-        self.B.value = self.res[1]
-        self.C.value = self.res[2]
-
-Colors = ('black','red','blue','green','orange',
-'blueviolet','crimson','turquoise','indigo',
-'magenta','gold','pink','purple','salmon','darkblue','sienna')
-
-class SpforSuper(object):
-    "a holder for SuperImpose"
-    def __init__(self, i, name):
-        j = i%len(Colors)
-        self.name = widgets.Text(value=name, layout=Layout(width='70%'))
-        self.color = widgets.Dropdown(options=Colors,value=Colors[j],layout=Layout(width='10%'))
-        self.direct = widgets.Dropdown(options=['up','down','off'],value='off', layout=Layout(width='10%'))
-        self.me = HBox([widgets.HTML(value="<b>%d</b>"%i),self.name, self.color,self.direct])
-        self.fig = False
-    def display(self):
-        if self.name != 'None' and self.direct.value != 'off':
-            scale = 1
-            if self.direct.value == 'up':
-                mult = 1
-            elif self.direct.value == 'down':
-                mult = -1
-            else:
-                return
-            FTICRData(name=self.name.value).set_unit('m/z').mult(mult).display(
-                new_fig=self.fig,
-                scale=scale,
-                color=self.color.value,
-                label=op.basename(op.dirname(self.name.value)))
-
-class SuperImpose(object):
-    "a tool to superimpose spectra"
-    def __init__(self, base=None, filetype='*.msh5', N=None):
-        if N is None:
-            N = int(input('how many spectra do you want to compare:  '))
-        self.Chooser = FileChooser(base=base, filetype=filetype, mode='r', show=False)
-        self.bsel = widgets.Button(description='Copy',layout=Layout(width='10%'),
-                button_style='info', # 'success', 'info', 'warning', 'danger' or ''
-                tooltip='copy selected data-set to entry below')
-        self.to = widgets.IntText(value=1,min=1,max=N,layout=Layout(width='10%'))
-        self.bsel.on_click(self.copy)
-        self.bdisplay = widgets.Button(description='Display',layout=Layout(width='10%'),
-                button_style='info', # 'success', 'info', 'warning', 'danger' or ''
-                tooltip='display superimposition')
-        self.bdisplay.on_click(self.display)
-        self.spec = Output(layout={'border': '1px solid black'})
-        self.DataList = [SpforSuper(i+1,'None') for i in range(N)]
-        self.DataList[0].color.value = 'black'
-        self.DataList[0].fig = True  # switches on the very first one
-    def Show(self):
-        display(widgets.Label('Select a file, and click on the Copy button to copy it to the chosen slot'))
-        self.Chooser.show()
-        display(HBox([self.bsel, widgets.Label('to'), self.to]))
-        display(VBox([sp.me for sp in self.DataList]))
-        display(self.bdisplay)
-        display(self.spec)
-    def copy(self, event):
-        if self.to.value <1 or self.to.value >len(self.DataList):
-            print('Destination is out of range !')
-        else:
-            self.DataList[self.to.value-1].name.value = self.Chooser.file
-            self.DataList[self.to.value-1].direct.value = 'up'
-        self.to.value = min(self.to.value, len(self.DataList)) +1
-    def display(self, event):
-        self.spec.clear_output(wait=True)
-        for i,s in enumerate(self.DataList):
-            with self.spec:
-                s.display()
-
 class MS2Dscene(object):
     "a widget to set all MS tools into one screen"
     def __init__(self, show=True, style=True, Debug=DEBUG):
@@ -789,17 +663,13 @@ class MS2Dscene(object):
         self.bload = Button(description='Load',  #layout=Layout(width='15%'),
                 tooltip='load and display experiment')
         self.bload.on_click(self.load2D)
-        #       pp
-        self.bpeak = Button(description='Peak Pick', #layout=Layout(width='15%'),
-                 tooltip='Detect Peaks', disabled=True)
-#        self.bpeak.on_click(self.peakpick)
 
         # GUI set-up and scene
         # tools 
         self.header = Output()
         with self.header:
             self.waitarea = Output()
-            self.buttonbar = HBox([self.bload, self.bpeak, self.waitarea])
+            self.buttonbar = HBox([self.bload, self.waitarea])
             display(Markdown('---\n# Select an experiment, and load'))
             display(self.filechooser)
             display(self.buttonbar)
@@ -902,11 +772,8 @@ class MS2Dscene(object):
 #                display(self.MR2D.sbox)
         with self.out1D:
             clear_output(wait=True)
-            self.lci = LC1D(self.MR2D, Debug=self.debug)
-#            self.MR2D.I1D()
-        # with self.outpp2D:
-        #     display(self.MR2D.box)  # copie of the main pane
-        #     display(self.MR2D.sbox)
+            self.lci = LC1D(parent=self, MRdata=self.MR2D, Debug=self.debug)
+
         with self.outinfo:
             clear_output(wait=True)
             self.MR2D.report()

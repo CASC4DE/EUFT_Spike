@@ -168,7 +168,6 @@ class FileChooser(VBox):
                 toreturn = '???'
         elif path.suffix == '.msh5':
             try:
-                print(path)
                 d = FTICRData(name=str(path), mode='onfile')
             except:
                 return '???'
@@ -426,20 +425,9 @@ class IFTMS(object):
                 print('No processed dataset to save')
                 self.waitarea.clear_output(wait=True)
             return
-        # Build name - first base
-        if not op.isdir(fullpath):             # one never knows
-            dirpath = op.dirname(fullpath)
-        else:
-            dirpath = fullpath
-        # then- increment filename to find an available name
-        i = 1
-        ok = False
-        while not ok:
-            expname = op.join(dirpath,'Processed_%d.msh5'%(i))
-            if op.exists(expname):
-                i += 1
-            else:
-                ok = True
+        # find name
+        expname = U.find_free_filename(fullpath, 'Processed', '.msh5')
+
         # clean if required
         self.form2param()
         parameters = self.datap.procparam
