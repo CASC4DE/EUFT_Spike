@@ -3,7 +3,6 @@
 - LC-MS
     - about
     - pp
-        - 1D
         - 2D ? - mais comment ?
 - 2D
     - processing.py / param.mscf: raw -> msh5

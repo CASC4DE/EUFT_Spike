@@ -60,14 +60,6 @@ reload(LCI)                   # and can be removed safely when in production
 mr = LCI.MS2Dscene(Debug=False)
 
 # %%
-pwd
-
-# %%
-nm = "MS Spectrum extracted from 1.54 to 2.33 minute"
-nm = nm.replace(' ','_')
-nm
-
-# %%
 # improve display of docu.
 from IPython.display import display, Markdown
 import ipywidgets as widgets
@@ -207,10 +199,9 @@ accordion
 # %%
 todo = '''# TODO
 ### importer
-- pb d'axe de la projection
-- pp !!!
-- sauver les 1D
-
+- pp
+    - parameter
+    - audit
 ### to come
 - changer l'affichage
     - LC horiz ?

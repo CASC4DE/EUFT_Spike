@@ -26,6 +26,8 @@ from xml.etree import cElementTree as ET
 from spike import FTICR
 from spike.NPKData import flatten, parsezoom, TimeAxis
 from spike.File.HDF5File import HDF5File
+from spike.File import csv
+
 from . import FTICR_INTER as FI
 from . import utilities as U
 
@@ -406,7 +408,7 @@ class LC1D(VBox):
                 tooltip='Detect Peaks')
         self.bpeak.on_click(self.peakpick)
         self.bsave = Button(description='Save',layout=Layout(width='15%'),
-                tooltip='Save processed data set in msh5 format')
+                tooltip='Save extracted data set to file')
         self.bsave.on_click(self.save)
         # GUI set-up and scene
         # tools 
@@ -565,7 +567,7 @@ class LC1D(VBox):
         self.done()
 
     def save(self, e):
-        "save 1D spectrum to msh5 file"
+        "save 1D spectrum to file: msh5 file if MS, csv if chromatogram"
         self.wait()
         # find type
         if self.s1D is None:
@@ -575,10 +577,21 @@ class LC1D(VBox):
                 self.waitarea.clear_output(wait=True)
 
         # find name
-        filename = U.find_free_filename(self.MR.name, self.s1D.title.replace(' ','_'), '.msh5')
-        
+        if self.s1D.title.startswith('Chrom'):   # we have a chromatogram
+            ext = ".csv"
+
+        else:                                    # we have a MS spectrum
+            ext = '.msh5'
+
+        basenm = self.s1D.title.replace(' ','_').replace('/','')
+        filename = U.find_free_filename(self.MR.name, basenm, ext)
+        print('saving to ',filename)
+
         try:
-            self.s1D.save_msh5(filename)
+            if ext == '.csv':
+                csv.save_unit(self.s1D, filename)
+            else:
+                self.s1D.save_msh5(filename)
         except:
             self.waitarea.clear_output(wait=True)
             with self.waitarea:
@@ -587,6 +600,7 @@ class LC1D(VBox):
             with self.outinfo:
                 traceback.print_exc()
             return
+
 
         with self.outinfo:
             display(Markdown("""# Save locally
@@ -613,12 +627,13 @@ class LC1D(VBox):
         parameters['zoom'] = None
         parameters['centroid'] = 'Yes'
         self.MAX_DISP_PEAKS = 200
+        self.s1D.fullpath = self.MR.name  # used to store peaklist
         U.peakpick_ms1d(self.s1D, parameters)
-        with self.out1D:
-            self.s1D.display_peaks(peak_label=True ,NbMaxPeaks=self.MAX_DISP_PEAKS)
+        self.s1D.display_peaks(figure=self.ax, peak_label=True ,NbMaxPeaks=self.MAX_DISP_PEAKS)
         with self.peaklist:
-            display( Markdown('%d Peaks detected'%len(self.datap.DATA.peaks)) )
-            display(HTML(self.s1D.pk2pandas().to_html()))
+            display( Markdown('# Peak Picking \n## %s'%self.s1D.title ))
+            display( Markdown('%d Peaks detected'%len(self.s1D.peaks)) )
+            display( HTML(self.s1D.pk2pandas().to_html() ) )
         self.done()
 
     def displayLC(self):
