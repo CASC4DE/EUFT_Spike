@@ -3,7 +3,7 @@ from pathlib import Path
 import subprocess
 
 """
-This code goes through all ueftgroup users and execute a command 
+This code goes through all euftgroup users and execute a command 
 in their account, with their id.
 """
 
