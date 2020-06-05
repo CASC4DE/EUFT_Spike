@@ -59,9 +59,12 @@ For questions and more information check the [dedicated forum](https://forum.cas
 - interface version: {1}
 
 ### Release notes
-- 1.0.03 - xxx
+- 1.0.03 - 5 June 2020
+    - possibility to peak-pick spectra and chromatograms extracted from a LC-MS experiment
+    - possibility to save spectra and chromatograms extracted from a LC-MS experiment
     - improved error messages in metadata generation
     - better handling of error on files
+    - improved online documentation
 - 1.0.02 - 23 May 2020
     - added this about page / release notes
     - better error messages

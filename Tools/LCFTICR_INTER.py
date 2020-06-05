@@ -545,6 +545,7 @@ class LC1D(VBox):
         lc.title = "Chrom. Profile extracted from %.4f to %.4f m/z"%(start,end)
         self.lc = lc
         self.s1D = lc
+        self.s1D_type = "LC"
         self.displayLC()
         self.done()
 
@@ -563,6 +564,7 @@ class LC1D(VBox):
         ms.title = "MS Spectrum extracted from %.2f to %.2f minute"%(start,end)
         self.ms = ms
         self.s1D = ms
+        self.s1D_type = "MS"
         self.displayMS()
         self.done()
 
@@ -577,9 +579,8 @@ class LC1D(VBox):
                 self.waitarea.clear_output(wait=True)
 
         # find name
-        if self.s1D.title.startswith('Chrom'):   # we have a chromatogram
+        if self.s1D_type == 'LC':   # we have a chromatogram
             ext = ".csv"
-
         else:                                    # we have a MS spectrum
             ext = '.msh5'
 
@@ -588,8 +589,11 @@ class LC1D(VBox):
         print('saving to ',filename)
 
         try:
-            if ext == '.csv':
-                csv.save_unit(self.s1D, filename)
+            if self.s1D_type == 'LC':
+                d = self.s1D
+                if self.SMstrength.value>0:
+                    d.eroding().sg(21,11-self.SMstrength.value).plus()
+                csv.save_unit(d, filename)
             else:
                 self.s1D.save_msh5(filename)
         except:
@@ -628,12 +632,21 @@ class LC1D(VBox):
         parameters['centroid'] = 'Yes'
         self.MAX_DISP_PEAKS = 200
         self.s1D.fullpath = self.MR.name  # used to store peaklist
-        U.peakpick_ms1d(self.s1D, parameters)
+        if self.s1D_type == 'LC':
+            d = self.s1D
+            if self.SMstrength.value>0:
+                d.eroding().sg(21,11-self.SMstrength.value).plus()
+            U.peakpick_chrom1d(d, parameters)
+        else:
+            U.peakpick_ms1d(self.s1D, parameters)
         self.s1D.display_peaks(figure=self.ax, peak_label=True ,NbMaxPeaks=self.MAX_DISP_PEAKS)
         with self.peaklist:
             display( Markdown('# Peak Picking \n## %s'%self.s1D.title ))
             display( Markdown('%d Peaks detected'%len(self.s1D.peaks)) )
-            display( HTML(self.s1D.pk2pandas().to_html() ) )
+            if self.s1D_type == 'LC':
+                display( HTML(U.pk2pandas_chr(d).to_html() ) )
+            else:
+                display( HTML(self.s1D.pk2pandas().to_html() ) )
         self.done()
 
     def displayLC(self):
@@ -704,7 +717,7 @@ class MS2Dscene(object):
         # peaklist
         self.peaklist = Output()  # the area where peak list is shown
         with self.peaklist:
-            display(HTML("<br><br><h3><i><center>This part is still in development</center></i></h3>"))
+            display(NODATA)
 
         # # form
         # self.outform = Output()  # the area where processing parameters are displayed

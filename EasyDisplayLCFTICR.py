@@ -36,18 +36,38 @@ else:
 # %xmode Plain
 import spike
 
-# %% [markdown]
-# # How to process LC-MS experiments
-# In order to appear here, LC-MS experiments have to processed in the background before being displayed on this tool.
-# To do so, you should upload into the Bruker `xxx.d` folder a configuration file called 
-# `import_yyy.mscf` where `yyy` can be anything (the `import_` part is important, the processing program search for it).
-#
-# You can [download here](http://10.18.0.2:5052/static/import_default.mscf) a template file, eventually edit it (it is a simple text file) it and upload it to the directory.
-# The presence of such a file will trigger the background processing, and your processed will appear in the list.
-# If different  `import_*.mscf` files are present, respective processings will be performed.
-#
-#
-# For more information see `Documentation` below.
+
+# %%
+if os.uname().nodename == 'madMacBook':  # a switch for the development environment
+    from spike.Interactive import INTER
+    INTER.hidecode(initial='hide', message=False)
+
+# %%
+from IPython.display import display, Markdown
+import ipywidgets as widgets
+def dodoc(md):
+    out = widgets.Output()
+    with out:
+        display(Markdown(md))
+    return out
+howto = dodoc("""
+In order to appear here, LC-MS experiments have to processed in the background before being displayed on this tool.
+First be sure that the `xxx.d` folder contains all the required raw data (the `ser` and `scan.xml` files), and the `*.m` folder with the method parameters.
+
+To do so, you should upload into the Bruker `xxx.d` folder a configuration file called 
+`import_yyy.mscf` where `yyy` can be anything (the name is important, the processing program search for it using this pattern).
+
+You can [download here](http://10.18.0.2:5052/static/import_default.mscf) a template file, eventually edit it (it is a simple text file) it and upload it to the directory.
+The presence of such a file will trigger the background processing, and your processed dataset will appear in the list.
+If different  `import_*.mscf` files are present, respective processings will be performed.
+
+
+For more information see `Documentation` below.
+""")
+acc2 = widgets.Accordion(children=[howto,])
+acc2.set_title(0,'How to process LC-MS experiments')
+acc2.selected_index = 0
+acc2
 
 # %%
 import EUFT_Spike.Tools.LCFTICR_INTER as LCI
@@ -78,7 +98,7 @@ The information is bi-dimensional, with one chromatographic axis and one MS axis
 The program allows to look at the whole data at once, as well as extracting MS spectra at a given retention time,
 or a chromatogram extracted at a given *m/z*.
 
-The raw data *(series of transients)* has to be processed before being handled here.
+The raw data `ser` *(series of transients)* has to be processed before being handled here.
 The processing  is performed in background on the deposit system,
 expect a few hours for the processing to be performed.
 There is no theoretical limit on the size of the data-set to process and visualize. 

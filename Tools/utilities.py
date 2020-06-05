@@ -8,6 +8,7 @@ from pprint import pprint
 from collections import namedtuple
 from functools import partial
 from pprint import pprint
+import numpy as np
 from spike.NPKData import _NPKData as npkd
 
 Apodisation = namedtuple('Apodisation', ['name', 'function'])
@@ -366,3 +367,51 @@ def peakpick_ms1d(data, parameters):
     auditclose()
     print(len(data.peaks), 'Peaks detected')
     return data
+
+def peakpick_chrom1d(data, parameters):
+    "do the peak-picking of a chromatogram calling pp().centroid()"
+    #self.spec.clear_output(wait=True)
+    audit = auditinitial(title="MS post-processing", append=True)
+    audittrail( audit, "text", str(data))
+    audittrail( audit, "phase","Chromatogram Peak-Picking")
+    # check is dataset was compressed
+    threshold = np.nanmax( data.get_buffer() )/10.0
+    data.set_unit('min').peakpick(threshold=threshold, verbose=False, zoom=parameters['zoom'])
+    if parameters['centroid'] == 'Yes':
+        data.centroid()
+
+    fnameh = find_free_filename(data.fullpath, 'peaklist', '.html')
+    fnamec = fnameh.replace('.html', '.csv')
+    print(fnameh)
+    # create files
+    with open(fnameh,'w') as F:
+        F.write( pk2pandas_chr(data).to_html() )
+    with open( fnamec,'w') as F:
+        F.write( pk2pandas_chr(data).to_csv() )
+    path_list = fnamec.split(os.sep)
+    audittrail( audit, "text", "Peak-Picking",
+                   "threshold above noise level", threshold,
+                   "zoom", parameters['zoom'],
+                   "number of detected peaks", len(data.peaks),
+                   "output file:", op.join(path_list[-2], path_list[-1]))
+    auditrelease(audit)
+    auditclose()
+    print(len(data.peaks), 'Peaks detected')
+    return data
+
+def pk2pandas_chr(npkd, full=False):
+    "export extract of current peak list to pandas Dataframe for chromatogram"
+    import pandas as pd
+    if npkd.dim == 1:
+        width = np.array([pk.width for pk in npkd.peaks])   # width have to be computed in m/z
+        width_array = 0.5*abs(npkd.axis1.itoc(npkd.peaks.pos+width) - npkd.axis1.itoc(npkd.peaks.pos-width))
+        width_array = np.where(width_array==0, np.NaN, width_array)
+        err = np.array([pk.pos_err for pk in npkd.peaks])
+        pos_err_array = 0.5*abs(npkd.axis1.itoc(npkd.peaks.pos+err) - npkd.axis1.itoc(npkd.peaks.pos-err))
+        P1 = pd.DataFrame({
+            'Id':[ pk.Id for pk in npkd.peaks],
+            'Label':npkd.peaks.label,
+            't (%s)'%npkd.axis1.currentunit:npkd.axis1.itoc(npkd.peaks.pos),
+            'width':width_array,
+        }).set_index('Id')
+    return P1
