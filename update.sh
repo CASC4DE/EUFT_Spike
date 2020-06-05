@@ -1,5 +1,4 @@
 # update of a user account already installed
-# update of 22 May 2020
 
 echo update of 5 june 2020
 
@@ -17,6 +16,7 @@ echo "=== update EU tools"
 cd EUFT_Spike
 fossil revert
 fossil update
+cp import_default.mscf C4template/static/
 ls Easy*.py |xargs -n 1 jupytext --to notebook
 
 # and move to $HOME

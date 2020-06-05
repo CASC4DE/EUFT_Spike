@@ -39,11 +39,13 @@ import spike
 
 
 # %%
-import EUFT_Spike.Tools.FTICR_INTER as FI
-
+if os.uname().nodename == 'madMacBook':  # a switch for the development environment
+    from spike.Interactive import INTER
+    INTER.hidecode(initial='hide', message=False)
 
 # %%
-pwd
+import EUFT_Spike.Tools.FTICR_INTER as FI
+
 
 # %%
 # launch
