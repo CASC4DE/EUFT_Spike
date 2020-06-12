@@ -106,34 +106,10 @@ The result of the processing is stored in a `*.msh5` file with the same filename
 These files use the standard 
 [HDF5 format](https://www.hdfgroup.org/solutions/hdf5), and can be read with any program able to access this open format.
 
-Only files in the seafile deposit can be handled.
+Only files in the Seafile deposit can be handled.
 
-## Standard Operation:
-#### Choose a file
-LC-MS raw data are stored in the `ser` file in Bruker directories.
-They have to be processed before being visualized with this utility.
-
-Use  the selector to choose a `.msh5` file to display. 
-
-#### Load
-The 
-<button class="p-Widget jupyter-widgets jupyter-button widget-button" >Load</button>
-button will get the processed experiment and display it.
-
-**Warning** for the moment this tool present all `*.msh5` files rather than only the LC-MS files. - this will be solved soon -
-
-#### Peak Pick
-<button class="p-Widget jupyter-widgets jupyter-button widget-button" >Peak Pick</button>
-Will compute the Peak list, according to the parameters define in the "Processing Parameters" pane.
-
-*This tool is not active and still in development*
-
-#### Exit
-Simply close the window to exist the program
-
-## display
-## display
-Figures can be interactively explored with the jupyter tools displayed  on the side of the dataset.
+## Spectra
+Spectra can be interactively explored with the jupyter tools displayed  on the side of the dataset.
 
 - zoom with <button class="jupyter-matplotlib-button jupyter-widgets jupyter-button" href="#" title="Zoom to rectangle" style="outline: currentcolor none medium;"><i class="center fa fa-square-o"></i></button>
 - shift and resize
@@ -150,8 +126,10 @@ Figures can also be saved as a `png` graphic file with
 <button class="jupyter-matplotlib-button jupyter-widgets jupyter-button" href="#" title="Download plot" style="outline: currentcolor none medium;"><i class="center fa fa-floppy-o"></i></button>
 
 ## Tab Panels
+There several tab panels that play different roles
+
 #### 1D Extraction
-Extract of the experiment can be displayed here, 
+Slices from the complete experiment can be computed and displayed here, 
 
 - On the **MS** line click on 
 <button class="p-Widget jupyter-widgets jupyter-button widget-button" >get</button>
@@ -163,25 +141,55 @@ to get a chromatogram of the *m/z* peak location given by the slider *(you can a
 If needed the chromatogram can be smoothed for better looking using a Savitsky-Golay method - 0 means no smoothing.
 - both extractions can be summed other a small region around the given location - which width is given by the second slider.
 
+for both type of dataset, the 
+<button class="p-Widget jupyter-widgets jupyter-button widget-button" >Peak Pick</button> button
+computes the position of peaks of the dataset currently displayed, and stores it as a CSV file in the project folder.
+
+The 
+<button class="p-Widget jupyter-widgets jupyter-button widget-button" >Save</button> button
+stores the content of the window, as a `.msh5` file for MS spectra or in CSV format for chromatograms.
+
+
 #### 2D spectrum:
-A 2D view of the LC-MS experiment,
+A 2D view of the LC-MS experiment, displayed as a contour map.
 - To speed-up the display, a low resolution of the spectrum is displayed
   when a large zone of the experiment is displayed.
-- resolution is udapted after zooming-in
+- resolution is optimized after zooming-in.
+- the vertical slider chooses the values at which the levels are drawn.
 
 #### Peak list
-the peak list, if computed - can be exported in csv format
-
-*This tool is not active and still in development*
-
-#### Processing Parameters
-all the parameters used for the processing
-
-*This tool is not active and still in development*
+The last computed peak list from the 1D panel.
 
 #### Info
 Details on the experiment.
 In particular the different resolutions layered in the document are presented.
+
+
+## Standard Operation:
+#### Choose a file
+LC-MS raw data are stored in the `ser` file in Bruker directories.
+They have to be processed before being visualized with this utility.
+
+The selector will present only those `.msh5` files which are available for analysis.
+
+There is no limit on the size of the dataset to be explored.
+*During the development, tests where performed on a 1800 × 4096k experiment (1800 spectra of 4096k length)
+and the program was resonably swift.*
+
+#### Explore the experiment in 2D mode
+Using the interactive tools available in the 2D panel.
+
+The TIC profile on the right and the MS total spectrum on the top allow to precisely locate the signals of interest.
+
+#### Extract spectra and chromatogram
+Using the 1D panel, you can look at a MS spectrum for a given retention time;
+or extract a chromatographic profile associated to a *m/z* value, or a range of values.
+
+#### Analyse the datasets
+
+#### Exit
+Simply close the window to exit the program
+
 
 ## Calibration
 The calibration used by SPIKE is based on a 2 or 3 parameters equation :
@@ -205,7 +213,7 @@ expect improvements, as certain parts are still in development
 - more efficient peak-picking
 - export and comparison of spectra
 - export to mzml and csv
-- 3D view of the experiment
+- real 3D view of the experiment
 - ...
 ''')
 
