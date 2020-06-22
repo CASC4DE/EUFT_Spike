@@ -46,7 +46,7 @@ version = "1.0.03"
 
 def about():
     'returns the about string in Markdown'
-    val = '''This program is developped by [CASC4DE](www.casc4de.eu) and is based on 
+    val = '''This program is developed by [CASC4DE](https://www.casc4de.eu) and is based on 
 - the [Spike](https://forum.casc4de.eu/p/2-spike) processing program,
 - the [scientific python](https://www.scipy.org/) language,
 - the [Jupyter](https://jupyter.org/) graphic environment,
@@ -57,7 +57,13 @@ For questions and more information check the [dedicated forum](https://forum.cas
 ### Current Version
 - spike version: {0}
 - interface version: {1}
+'''.format(spike.version.version, version)
 
+    temprel = '''
+- 1.0.04 - xx June 2020
+    - improved documentation
+'''
+    release = '''
 ### Release notes
 - 1.0.03 - 5 June 2020
     - possibility to peak-pick spectra and chromatograms extracted from a LC-MS experiment
@@ -76,8 +82,8 @@ For questions and more information check the [dedicated forum](https://forum.cas
     - corrected a bug while saving processed spectra from the old "Apex0" format (with 'acqus' file)
 - 1.0.0  - 28 Apr 2020  initial version
 
-'''.format(spike.version.version, version)
-    return val
+'''
+    return val+release
 
 # TOOLS FOR 1D FTICR
 

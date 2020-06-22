@@ -132,11 +132,11 @@ There several tab panels that play different roles
 Slices from the complete experiment can be computed and displayed here, 
 
 - On the **MS** line click on 
-<button class="p-Widget jupyter-widgets jupyter-button widget-button" >get</button>
+<button class="p-Widget jupyter-widgets jupyter-button widget-button" style="width: 60px;">get</button>
 to get a MS spectra extracted at the retention time
     given by the slider - labelled in minutes *(you can also type directly the value)*.
 - On the **LC** line click on
-<button class="p-Widget jupyter-widgets jupyter-button widget-button" >get</button>
+<button class="p-Widget jupyter-widgets jupyter-button widget-button" style="width: 60px;">get</button>
 to get a chromatogram of the *m/z* peak location given by the slider *(you can also type directly the value)*.
 If needed the chromatogram can be smoothed for better looking using a Savitsky-Golay method - 0 means no smoothing.
 - both extractions can be summed other a small region around the given location - which width is given by the second slider.
@@ -152,16 +152,29 @@ stores the content of the window, as a `.msh5` file for MS spectra or in CSV for
 
 #### 2D spectrum:
 A 2D view of the LC-MS experiment, displayed as a contour map.
-- To speed-up the display, a low resolution of the spectrum is displayed
-  when a large zone of the experiment is displayed.
-- resolution is optimized after zooming-in.
-- the vertical slider chooses the values at which the levels are drawn.
+
+To speed-up the display, a low resolution of the spectrum is displayed
+  when a large zone of the experiment is displayed, resolution is optimized after zooming-in.
+The resolution being used is displayed on the top left of the 2D map,
+(see in the `Info` Panel for the different resolution of the dataset.)
+and R is an estimate of the maximum resolving power available in the center of the zoom window
+(computed from the sampling of the *m/z* axis rather than from the actual peak width!).
+
+The zoom box on the top shows the current zoom limits, which can be modified at will.
+The 
+<button class="p-Widget jupyter-widgets jupyter-button widget-button">Apply</button> button 
+activates the entry.
+
+The vertical slider chooses the values at which the levels are drawn, and the 
+<button class="p-Widget jupyter-widgets jupyter-button widget-button" style="width: 80px;">Redraw</button> and 
+<button class="p-Widget jupyter-widgets jupyter-button widget-button" style="width: 80px;">Reset</button> buttons
+will recompute the display, `Redraw` with the current zoom and scale parameters, and `Reset` with the default parameters.
 
 #### Peak list
-The last computed peak list from the 1D panel.
+Display the last computed peak list from the 1D panel.
 
 #### Info
-Details on the experiment.
+Display details on the experiment.
 In particular the different resolutions layered in the document are presented.
 
 
@@ -174,10 +187,10 @@ The selector will present only those `.msh5` files which are available for analy
 
 There is no limit on the size of the dataset to be explored.
 *During the development, tests where performed on a 1800 × 4096k experiment (1800 spectra of 4096k length)
-and the program was resonably swift.*
+and the program was reasonably swift.*
 
 #### Explore the experiment in 2D mode
-Using the interactive tools available in the 2D panel.
+Using the interactive tools available in the 2D panel (see above)
 
 The TIC profile on the right and the MS total spectrum on the top allow to precisely locate the signals of interest.
 
@@ -185,7 +198,9 @@ The TIC profile on the right and the MS total spectrum on the top allow to preci
 Using the 1D panel, you can look at a MS spectrum for a given retention time;
 or extract a chromatographic profile associated to a *m/z* value, or a range of values.
 
-#### Analyse the datasets
+You can realize a pick-peaking as well as store the displayed dataset.
+
+`.msh5` files created from the MS spectra stored with this tool can then loaded back into the program `Process_Tool`.
 
 #### Exit
 Simply close the window to exit the program
@@ -198,7 +213,8 @@ The calibration used by SPIKE is based on a 2 or 3 parameters equation :
 
 where *A* *B* and *C* are imported from the Bruker `ML1` `ML2` `ML3` parameters.
 
-**Be carefull** Bruker uses a sign inversion on `ML2` depending on the value of `ML3` - this is not used, and the equation is allwas the same.
+**Be careful** Bruker uses a sign inversion on `ML2` depending on the value of `ML3` -
+this is not used, and the equation is always the same.
 
 This set-up will be changed in the future for a more flexible and robust set-up
 ''')

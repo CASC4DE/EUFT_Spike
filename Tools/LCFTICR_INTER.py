@@ -269,7 +269,7 @@ class MR_interact(MR):
         self.bb('b_zupdate', 'Apply', lambda e : self.display(),
             layout=Layout(width='100px'), tooltip="Set zoom to values")
         self.bb('b_reset', 'Reset', self.reset,
-            layout=Layout(width='100px'), tooltip="Set zoom to values")
+            layout=Layout(width='80px'), tooltip="Set zoom to values")
         blank = widgets.HTML("&nbsp;",layout=lay)
         label =  widgets.HTML('Zoom Window (in <i>m/z</i>)')
         innerbox = VBox([ label,
@@ -288,8 +288,8 @@ class MR_interact(MR):
                     orientation='vertical')
         self.scale.observe(self.ob)
         self.bb('b_redraw', 'Redraw', lambda e : self.display(),
-            layout=Layout(width='100px'))
-        box = VBox([self.b_reset, self.scale, self.b_redraw], layout=Layout(min_width='105px'))
+            layout=Layout(width='80px'))
+        box = VBox([self.b_reset, self.scale, self.b_redraw], layout=Layout(min_width='90px'))
         return HBox([box, self.fig.canvas])
     # def scale_up(self, step):
     #     self.scale.value *= 1.1892**step # 1.1892 is 4th root of 2.0
