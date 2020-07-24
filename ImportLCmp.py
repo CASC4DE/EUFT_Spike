@@ -336,7 +336,7 @@ def Import_and_Process_LC(folder, nProc=1, outfile = "LC-MS.msh5",
     # and close
     HF.flush()
     if nProc>1:
-        Pool.close()    # finally closes multiprocessing slaves
+        Pool.close()    # finally closes multiprocessing subordinates
     return data
 
 class Proc_Parameters(object):
