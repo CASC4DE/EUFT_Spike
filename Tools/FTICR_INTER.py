@@ -112,6 +112,61 @@ def msstr(msf):
     return "%s \t \t %s"%(msf.ftype, msf.spath)
 MSfile.__str__ = msstr   
 
+def filetype(path):
+    "returns filetype as a string"
+    if path.suffix == '.d':
+        if (path/'ser').exists():
+            toreturn = 'ser'
+        elif (path/'fid').exists():
+            toreturn = 'fid'
+        else:
+            toreturn = '???'
+    elif path.suffix == '.msh5':
+        try:
+            d = FTICRData(name=str(path), mode='onfile')
+        except:
+            return '???'
+        if d.dim == 1:
+            toreturn = 'MS'
+        elif d.dim == 2:
+            try:
+                pj = FTICRData(name=str(path), mode="onfile", group="projectionF2")
+                pj.hdf5file.close()
+                toreturn = 'LC-MS'
+            except tables.NoSuchNodeError:
+                toreturn = '2D-MS'
+        else:
+            toreturn = '???'
+        d.hdf5file.close()
+    elif path.name == 'acqus':
+        toreturn = 'FID'
+    else:
+        toreturn = '???'            
+    return toreturn
+
+def build_list(base='DATA', dotd=True, msh5=True,
+                accept=('fid', 'FID', 'ser', 'MS', 'LC-MS', '2D-MS')):
+    flist = []
+    if dotd:
+        flist.append('   --- raw ---')
+        for i in Path(base).glob('**/*.d'):     # Apex and Solarix
+            if i.is_dir():
+                ftype = filetype(i)
+                if ftype in accept:
+                    flist.append(MSfile(i, i.relative_to(base), ftype)) 
+        for i in Path(base).glob('**/acqus'):   # "Apex0"
+            if (i.parent/'fid').exists():
+                ftype = filetype(i)
+                if ftype in accept:
+                    flist.append(MSfile((i.parent/'fid'), i.parent.relative_to(base), ftype)) 
+    if msh5:
+        flist.append('   --- processed ---')
+        for i in Path(base).glob('**/*.msh5'):
+            ftype = filetype(i)
+            if ftype in accept:
+                flist.append(MSfile(i, i.relative_to(base), ftype)) 
+    return flist
+
 class FileChooser(VBox):
     """a simple chooser for Jupyter for selecting *.d directories
     This new version creates a list of tuple
@@ -134,69 +189,16 @@ class FileChooser(VBox):
         super().__init__()
         self.base = base
         self.filter = {'base':base, 'dotd':dotd, 'msh5':msh5, 'accept':accept}
-        flist = self.build_list(**self.filter)
+        flist = build_list(**self.filter)
         self.selec = widgets.Select(options=flist, rows=min(8,len(flist)), layout={'width': 'max-content'})
         self.bref = Button(description='Refresh',layout=Layout(width='10%'),
                 tooltip='Refresh list')
         self.bref.on_click(self.refresh)
         first_line = HBox([widgets.HTML('<b>Choose one experiment</b>&nbsp;&nbsp;'), self.bref])
         self.children  = [first_line, self.selec ]
-    def build_list(self, base='DATA', dotd=True, msh5=True,
-                   accept=('fid', 'FID', 'ser', 'MS', 'LC-MS', '2D-MS')):
-        flist = []
-        if dotd:
-            flist.append('   --- raw ---')
-            for i in Path(base).glob('**/*.d'):     # Apex and Solarix
-                if i.is_dir():
-                    ftype = self.filetype(i)
-                    if ftype in accept:
-                        flist.append(MSfile(i, i.relative_to(base), ftype)) 
-            for i in Path(base).glob('**/acqus'):   # "Apex0"
-                if (i.parent/'fid').exists():
-                    ftype = self.filetype(i)
-                    if ftype in accept:
-                        flist.append(MSfile((i.parent/'fid'), i.parent.relative_to(base), ftype)) 
-        if msh5:
-            flist.append('   --- processed ---')
-            for i in Path(base).glob('**/*.msh5'):
-                ftype = self.filetype(i)
-                if ftype in accept:
-                    flist.append(MSfile(i, i.relative_to(base), ftype)) 
-        return flist
     def refresh(self, e):
-        self.selec.options = self.build_list(**self.filter)
+        self.selec.options = build_list(**self.filter)
         self.selec.rows = min(8,len(self.selec.options))
-    def filetype(self, path):
-        "returns filetype as a string"
-        if path.suffix == '.d':
-            if (path/'ser').exists():
-                toreturn = 'ser'
-            elif (path/'fid').exists():
-                toreturn = 'fid'
-            else:
-                toreturn = '???'
-        elif path.suffix == '.msh5':
-            try:
-                d = FTICRData(name=str(path), mode='onfile')
-            except:
-                return '???'
-            if d.dim == 1:
-                toreturn = 'MS'
-            elif d.dim == 2:
-                try:
-                    pj = FTICRData(name=str(path), mode="onfile", group="projectionF2")
-                    pj.hdf5file.close()
-                    toreturn = 'LC-MS'
-                except tables.NoSuchNodeError:
-                    toreturn = '2D-MS'
-            else:
-                toreturn = '???'
-            d.hdf5file.close()
-        elif path.name == 'acqus':
-            toreturn = 'FID'
-        else:
-            toreturn = '???'            
-        return toreturn
     @property
     def selected(self):
         if isinstance(self.selec.value, str):
@@ -654,10 +656,10 @@ class SpforSuper(object):
 
 class SuperImpose(object):
     "a tool to superimpose spectra"
-    def __init__(self, base=None, filetype='*.msh5', N=None):
+    def __init__(self, base=None, ftype='*.msh5', N=None):
         if N is None:
             N = int(input('how many spectra do you want to compare:  '))
-        self.Chooser = FileChooser(base=base, filetype=filetype, mode='r', show=False)
+        self.Chooser = FileChooser(base=base, ftype=ftype, mode='r', show=False)
         self.bsel = widgets.Button(description='Copy',layout=Layout(width='10%'),
                 tooltip='copy selected data-set to entry below')
         self.to = widgets.IntText(value=1,min=1,max=N,layout=Layout(width='10%'))
