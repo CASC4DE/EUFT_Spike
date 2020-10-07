@@ -46,7 +46,7 @@ pip --log pip.log install --user -U spike-py
 #python -m spike.Tests -D DATA_test
 
 # Installer les outils locaux
-fossil clone http://localhost:8070/home/casc4de/FossilRepositories/EUFT_Spike EUFT_Spike.fossil
+fossil clone http://localhost:8070/EUFT_Spike EUFT_Spike.fossil
 mkdir -p EUFT_Spike
 cd EUFT_Spike
 fossil open ../EUFT_Spike.fossil
