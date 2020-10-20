@@ -648,6 +648,8 @@ class Proc_Parameters(object):
         self.compress_level = cp.getfloat( "processing", "compress_level", self.compress_level)
         self.tempdir = cp.get( "processing", "tempdir", ".")                            # dir for temporary file
         self.samplingfile = cp.get( "processing", "samplingfile")
+        if self.samplingfile == "None":
+            self.samplingfile = None
         self.samplingfile_fake = cp.getboolean( "processing", "samplingfile_fake", str(self.samplingfile_fake))
         self.largest = cp.getint( "processing", "largest_file", 8*LARGESTDATA)            # largest allowed file
         self.largest = self.largest//8                                                   # in byte in the configfile, internally in word
@@ -707,6 +709,9 @@ class Proc_Parameters(object):
             raise Exception("Please define only one value : zerofilling or sizes multipliers")
         if self.mp and mpiutil.MPI_size > 1:
             raise Exception("use_multiprocessing is not compatible with MPI")
+        if self.samplingfile is not None:
+            if not os.path.exists(self.samplingfile):
+                raise Exception("Sampling file for N.U.S. is missing:",self.samplingfile)
         
     def report(self):
         "print a formatted report"
