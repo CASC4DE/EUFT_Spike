@@ -115,12 +115,6 @@ reload(IF2)                   # and can be removed safely when in production
 mr = IF2.MS2Dscene(Debug=False)
 
 
-# %% [markdown]
-# - 0  : 93++   8.3
-# - 1 : 5.40    0.59
-# - 2 : 1.41    0.1
-# - 3 : 0.4
-
 # %%
 from  spike.FTICR import FTICRData
 def _get_diagonal(data):
@@ -140,13 +134,11 @@ def get_diagonal(data):
     diag = data[iz,jz]
     ddiag.set_buffer(diag).plus()
     return ddiag
-
-
-# %%
 #get_diagonal(mr.MR2D.data[0]).set_unit('m/z').display()
 #_get_diagonal(mr.MR2D.data[1]).set_unit('m/z').display(new_fig=False)
-
-# %%
-data
-
-# %%
+"""  timings
+- 0  : 93++   8.3
+- 1 : 5.40    0.59
+- 2 : 1.41    0.1
+- 3 : 0.4
+""";
