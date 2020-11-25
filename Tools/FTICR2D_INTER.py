@@ -6,39 +6,38 @@ A tool to display FT-ICR data-sets
 
 to be embedded in jupyter notebook
 
-MAD Sept 2019
+MAD Oct 2020
 
 This version requires ipympl (see: https://github.com/matplotlib/jupyter-matplotlib )
 and the notebook to be opened with %matplotlib widget
 """
 import os.path as op
+from pathlib import Path
+
 import tables
 import matplotlib.pyplot as plt
 from ipywidgets import interact, fixed, HBox, VBox, GridBox, Label, Layout, Output, Button
 import ipywidgets as widgets
-from IPython.display import display, Markdown, HTML, Image
+from IPython.display import display, Markdown, HTML, Image, clear_output
 import numpy as np
 
 from spike import FTICR
 from spike.NPKData import flatten, parsezoom
-from spike.Interactive.ipyfilechooser import FileChooser
 from spike.FTMS import FTMSData
 from spike.FTICR import FTICRData
 
-# REACTIVE modify callback behaviour
-# True is good for inline mode / False is better for notebook mode
-REACTIVE = True
-HEAVY = False
+from . import FTICR_INTER as FI
+from . import utilities as U
 
-SIZEMAX = 8*1024*1024       # largest zone to display
-NbMaxDisplayPeaks = 1000      # maximum number of peaks to display at once
+from . import parameters as p
+
 
 # TOOLS FOR 2D FTICR
 class MR(object):
     "this class handles multiresolution datasets"
     def __init__(self, name, report=True, Debug=False):
         "name : filename of the msh5 multiresolution file"
-        self.SIZEMAX = SIZEMAX
+        self.SIZEMAX = p.SIZEMAX
         self.name = name
         self.data = []                   # will contain all resolutions
         self.absmax = 0.0                # will accumulates global absmax
@@ -51,6 +50,7 @@ class MR(object):
 #        self.row0 = self.data[0].row
         self.highmass = self.data[0].highmass     # a tuple (h1, h2)
         self.Debug = Debug
+        self.title = op.basename(self.name)
         if report: self.report()
 
     def load(self):
@@ -158,8 +158,8 @@ class MR_interact(MR):
         # .  F1 .
         # F2 .  F2
         # .  F1 .
-        self.scale = widgets.FloatLogSlider(description='scale:', value=1.0, min=-1, max=3,  base=10, step=0.01,
-            layout=Layout(width='80%'), continuous_update=HEAVY)
+#        self.scale = widgets.FloatLogSlider(description='scale:', value=1.0, min=-1, max=3,  base=10, step=0.01,
+#           layout=Layout(width='80%'), continuous_update=p.HEAVY)
 
         wf = widgets.BoundedFloatText
         ref = self.data[0]
@@ -173,7 +173,13 @@ class MR_interact(MR):
             style=style, layout=lay)
         self.z2h = wf(  min=ref.axis2.lowmass, max=ref.highmass[1],
             style=style, layout=lay)
-        self.fullzoom()
+        labelhd =  widgets.HTML('Highest displayed mass:')
+        self.highestdisplayed = wf( min=min(ref.axis1.lowmass,ref.axis2.lowmass)+10,
+                                    max=max(self.highmass),
+                                    tooltip='Highest displayed mass', style=style, layout=lay)
+        self.highestdisplayed.value  = max(self.highmass)
+        self.highestdisplayed.observe(self.fullzoom)
+        self.fullzoom(None)
         self.bb('b_zupdate', 'Apply', lambda e : self.display(),
             layout=Layout(width='100px'), tooltip="Set zoom to values")
         self.bb('b_reset', 'Reset', self.reset,
@@ -186,13 +192,11 @@ class MR_interact(MR):
                     HBox([blank,    self.z1l, blank]),  
                 ]
             )
-        action_box = VBox([blank ])
-        box = HBox([ self.b_reset, innerbox])
-        return innerbox
+        return HBox([innerbox,labelhd,self.highestdisplayed])
     def spec_box(self):
         "defines the spectral box widget"
         self.scale = widgets.FloatSlider(description='scale:', value=1.0, min=1.0, max=20, step=0.1,
-                    tooltip='Set display scale', layout=Layout(width='100px', height='400px'), continuous_update=HEAVY,
+                    tooltip='Set display scale', layout=Layout(width='100px', height='400px'), continuous_update=p.HEAVY,
                     orientation='vertical')
         self.scale.observe(self.ob)
         self.bb('b_redraw', 'Redraw', lambda e : self.display(),
@@ -228,7 +232,7 @@ class MR_interact(MR):
         self.pltaxe.clear() # clear 
         datasel.display(zoom=zz, scale=self.scale.value, absmax=self.absmax, 
             xlabel='F2    m/z', ylabel='F1    m/z',
-            show=False, figure=self.pltaxe)
+            show=False, title=self.title,  figure=self.pltaxe)
         self.pltaxe.text(corner[1],corner[0],"D#%d R: %.0fx%.0f"%(self.data.index(datasel)+1, *reso))
     def check_fig(self):
         "create figure if missing"
@@ -265,14 +269,14 @@ class MR_interact(MR):
 #        cidc = self.pltfig.canvas.mpl_connect('button_press_event', on_press)
     def reset(self, b):
         self.scale.value = 1.0
-        self.fullzoom()
+        self.fullzoom(None)
         self.reset_track()
         self.display()
-    def fullzoom(self):
-        self.z1l.value = self.axis2.lowmass+0.01
-        self.z1h.value = self.highmass[0]
+    def fullzoom(self, b):
+        self.z1l.value = self.axis1.lowmass+0.01
+        self.z1h.value = min(self.highmass[0], self.highestdisplayed.value)
         self.z2l.value = self.axis2.lowmass+0.01
-        self.z2h.value = self.highmass[1]
+        self.z2h.value = min(self.highmass[1], self.highestdisplayed.value)
 
 # ####### zoom track - experimental ########
     def reset_track(self):
@@ -299,9 +303,9 @@ class MR_interact(MR):
 # ##################### 1D ##################
     def I1D(self):
         "show the 1D selector"
-        self.r1D = None
-        self.t1D = ''
-        self.i1D = None
+        self.r1D = None         # dataset  object
+        self.t1D = ''           #  'row' or 'col'
+        self.i1D = None         # index in 2D
         self.check_fig1D()
         display(self.ext_box())
 
@@ -589,48 +593,77 @@ class SuperImpose(object):
 
 class MS2Dscene(HBox):
     "a widget to set all MS tools into one screen"
-    def __init__(self, show=True, root='/'):
+    def __init__(self, show=True, style=True, Debug=p.DEBUG):
         super(self.__class__, self).__init__()
-        # DATA
-        self.MR2D = None # The MR2D object
+        # header
+        #   filechooser
+        self.base = p.BASE
+        self.filechooser = FI.FileChooser(self.base, dotd=False, accept=('2D-MS',))
+        self.datap = None
+        self.MAX_DISP_PEAKS = p.NbMaxDisplayPeaks
+        self.debug = Debug
 
-        # GUI tools
-        self.FC = FileChooser(root, filetype='*.msh5', mode='r')
+        #   buttons
+        #       load
+        self.bload = Button(description='Load',  #layout=Layout(width='15%'),
+                tooltip='load and display experiment')
+        self.bload.on_click(self.load2D)
+        #       info
+        self.binfo = Button(description='Info',  #layout=Layout(width='15%'),
+                tooltip='Info on selected experiment')
+        self.binfo.on_click(self.info2D)
 
-        self.bdisp2D = Button(description='Load 2D',layout=Layout(width='20%'),
-                button_style='success', tooltip='load and display interactive 2D map')
-        self.bdisp2D.on_click(self.load2D)
-
-        # GUI
+        # GUI set-up and scene
+        # tools 
         self.header = Output()
         with self.header:
-            display(Markdown('---\n# Select a file, and choose a tool'))
-            display(self.FC)
-            display(self.bdisp2D)
+            self.waitarea = Output()
+            self.buttonbar = HBox([self.bload, self.binfo, self.waitarea])
+            display(Markdown('---\n# Select an experiment, and load'))
+            display(self.filechooser)
+            display(self.buttonbar)
 
+        NODATA = HTML("<br><br><h3><i><center>No Data</center></i></h3>")
+        # 2D spectrum
         self.out2D = Output()  # the area where 2D is shown
         with self.out2D:
-            display(HTML("<br><br><h3><i><center>No Data</center></i></h3>"))
-
-        # self.outpp2D = Output()  # the area where peak picking is shown
-        # with self.outpp2D:
-        #     display(HTML("<br><br><h3><i><center>No Data</center></i></h3>"))
-
+            display(NODATA)
+            display(Markdown("use the `Load` button above"))
+        # 1D spectrum
         self.out1D = Output()  # the area where 1D is shown
         with self.out1D:
-            display(HTML("<br><br><h3><i><center>No Data</center></i></h3>"))
+            display(NODATA)
+            display(Markdown("After loading, this window will be activated"))
 
+        # peaklist
+        self.peaklist = Output()  # the area where peak list is shown
+        with self.peaklist:
+            display(NODATA)
+
+        # # form
+        # self.outform = Output()  # the area where processing parameters are displayed
+        # with self.outform:
+        #     self.paramform()
+        #     display(self.form)
+
+        # Info
         self.outinfo = Output()  # the area where info is shown
         with self.outinfo:
-            display(HTML("<br><br><h3><i><center>No Data</center></i></h3>"))
+            display(NODATA)
 
-        # GUI set-up and show
+        self.out2D.clear_output(wait=True)
+        self.out1D.clear_output(wait=True)
+        self.outinfo.clear_output(wait=True)
+        self.peaklist.clear_output(wait=True)
+
+        #  tabs
         self.tabs = widgets.Tab()
-        self.tabs.children = [ self.out2D, self.out1D, self.outinfo ]
-        self.tabs.set_title(0, '2D Display')
-        self.tabs.set_title(1, '1D extraction')
-#        self.tabs.set_title(2, 'Peak Picking')
-        self.tabs.set_title(2, 'info')
+        self.tabs.children = [ self.out1D, self.out2D, self.peaklist, self.outinfo ]
+        self.tabs.set_title(0, '1D Extraction')
+        self.tabs.set_title(1, '2D Display')
+        self.tabs.set_title(2, 'Peak List')
+        # self.tabs.set_title(3, 'Processing Parameters')
+        self.tabs.set_title(3, 'Info')
 
 #        self.tabs = VBox([ self.out2D, self.outpp2D, self.out1D, self.outinfo ])
         self.box = VBox([   self.header,
@@ -640,32 +673,83 @@ class MS2Dscene(HBox):
         #                 self.FC,
         #                 HBox([self.bdisp2D, self.bpp2D, self.bdisp1D])
         #                 ])
+        if style:
+            FI.injectcss()
         if show:
             display(self.box)
 
+    def wait(self):
+        "show a little waiting wheel"
+        here = Path(__file__).parent
+        with open(here/"icon-loader.gif", "rb") as F:
+            with self.waitarea:
+                self.wwait = widgets.Image(value=F.read(),format='gif',width=40)
+                display(self.wwait)
+    def done(self):
+        "remove the waiting wheel"
+        self.wwait.close()
+
+    @property
+    def selected(self):
+        return str(self.filechooser.selected)
+    def title(self):
+        return str(self.filechooser.name)
+
     def load2D(self, e):
         "create 2D object and display"
-        self.out2D.clear_output(wait=True)
+        self.wait()
+        with self.waitarea:
+            print('Please wait while loading...')
 #        self.outpp2D.clear_output(wait=True)
-        self.out1D.clear_output(wait=True)
-        self.outinfo.clear_output(wait=True)
+        fullpath = self.selected
         try:
-            self.MR2D = MR_interact(self.FC.selected, 
-                report=False, show=False, figsize=(15,15), Debug=False)
+            self.MR2D = MR_interact(fullpath, 
+                report=False, show=False, Debug=self.debug)
         except FileNotFoundError:
             self.MR2D = None
-            with self.out2D:
-                display(HTML("<br><br><h3><i><center>No Data or wrong Data</center></i></h3>"))
-        if self.MR2D is not None:     
-            with self.out2D:
-                self.MR2D.show()
+            self.done()
+            with self.waitarea:
+                print('Error while loading',self.selected, 'file not found or wrong format')
+                self.waitarea.clear_output(wait=True)
+            with self.outinfo:
+                traceback.print_exc()
+            return
+
+        with self.out2D:
+            clear_output(wait=True)
+            self.MR2D.show()
 #                display(self.MR2D.box)
 #                display(self.MR2D.sbox)
-            with self.out1D:
-                self.MR2D.I1D()
-            # with self.outpp2D:
-            #     display(self.MR2D.box)  # copie of the main pane
-            #     display(self.MR2D.sbox)
+        with self.out1D:
+            clear_output(wait=True)
+            self.MR2D.I1D()
+        # with self.outpp2D:
+        #     display(self.MR2D.box)  # copie of the main pane
+        #     display(self.MR2D.sbox)
+        with self.outinfo:
+            clear_output(wait=True)
+            self.MR2D.report()
+        self.tabs.selected_index = 1
+        self.done()
+        self.waitarea.clear_output()
+
+    def info2D(self, e):
+        "display info on 2D object in the Info panel"
+        self.wait()
+        fullpath = self.selected
+        try:
+            lMR = MR(fullpath, report=False, Debug=self.debug)
+        except FileNotFoundError:
+            with self.waitarea:
+                print('Error while loading',self.selected, 'file not found or wrong format')
+                self.waitarea.clear_output(wait=True)
             with self.outinfo:
-                self.MR2D.report()
-                print()
+                traceback.print_exc()
+            self.done()
+            return
+
+        with self.outinfo:
+            clear_output(wait=True)
+            lMR.report()
+        self.tabs.selected_index = 3
+        self.done()

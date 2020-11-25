@@ -65,7 +65,7 @@ If different  `import_*.mscf` files are present, respective processings will be 
 For more information see `Documentation` below.
 """)
 acc2 = widgets.Accordion(children=[howto,])
-acc2.set_title(0,'How to process LC-MS experiments')
+acc2.set_title(0,'How to handle LC-MS experiments')
 acc2.selected_index = 0
 acc2
 

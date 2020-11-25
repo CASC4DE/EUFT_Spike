@@ -31,15 +31,7 @@ from spike.File import csv
 from . import FTICR_INTER as FI
 from . import utilities as U
 
-# REACTIVE modify callback behaviour
-# True is good for inline mode / False is better for notebook mode
-REACTIVE = True
-HEAVY = False
-DEBUG = False
-
-BASE = 'FTICR_DATA'              # name of the 
-SIZEMAX = 8*1024*1024        # largest zone to display
-NbMaxDisplayPeaks = 200      # maximum number of peaks to display at once
+from . import parameters as p
 
 def Set_Table_Param():
 #    if debug>0: return
@@ -55,10 +47,10 @@ def Set_Table_Param():
 # TOOLS FOR LC FTICR
 class MR(object):
     "this class handles multiresolution datasets"
-    def __init__(self, name, report=True, Debug=DEBUG):
+    def __init__(self, name, report=True, Debug=p.DEBUG):
         "name : filename of the msh5 multiresolution file"
         Set_Table_Param()
-        self.SIZEMAX = SIZEMAX
+        self.SIZEMAX = p.SIZEMAX
         self.name = name
         self.data = []                   # will contain all resolutions
         self.min, self.tic, self.mxpk = self.readScanXML()
@@ -72,6 +64,7 @@ class MR(object):
         self.Tmin = float(self.data[0].axis1.Tmin/60)   # internal is in sec - display is in min.
         self.Tmax = float(self.data[0].axis1.Tmax/60)
         self.Debug = Debug
+        self.title = op.basename(self.name)
         if report: self.report()
 
     def readScanXML(self):
@@ -102,7 +95,6 @@ class MR(object):
                 pass
             else:
                 self.data.append(dl)
-                self.title = op.basename(self.name)
         # set-up details
         for d in self.data:
             if d.size1 != len(self.min):
@@ -207,7 +199,7 @@ def different(a,b):
     "True if more than x% different"
     return abs( 2*(a-b)/(a+b)) > 0.02
 class MR_interact(MR):
-    def __init__(self, name, figsize=(15,6), report=True, show=True, Debug=DEBUG):
+    def __init__(self, name, figsize=(15,6), report=True, show=True, Debug=p.DEBUG):
         """
         creates an interactive object.
         if display is True (default) the graphical tool will be displayed.
@@ -284,7 +276,7 @@ class MR_interact(MR):
     def spec_box(self):
         "defines the spectral box widget"
         self.scale = widgets.FloatLogSlider(description='scale:', value=1.0, min=-1, max=3, step=0.1,
-                    tooltip='Set display scale', layout=Layout(height='400px'), continuous_update=HEAVY,
+                    tooltip='Set display scale', layout=Layout(height='400px'), continuous_update=p.HEAVY,
                     orientation='vertical')
         self.scale.observe(self.ob)
         self.bb('b_redraw', 'Redraw', lambda e : self.display(),
@@ -378,7 +370,7 @@ class LC1D(VBox):
     """
     Define a tool to explore slices extracted from a LC-MS experiment
     """
-    def __init__(self, parent=None, MRdata=None, show=True, Debug=DEBUG):
+    def __init__(self, parent=None, MRdata=None, show=True, Debug=p.DEBUG):
         "MRData should be a MR() object, parent is used for the peaklist and the wait area"
         super(LC1D, self).__init__()
         # initialize data
@@ -498,7 +490,7 @@ class LC1D(VBox):
 #            description='smoothing:',
 #            layout=Layout(flex='1'))
         self.SMstrength = widgets.IntSlider(description='smoothing:',value=5, min=0, max=10,disabled=False,
-            continuous_update=HEAVY, layout=Layout(flex='2'))
+            continuous_update=p.HEAVY, layout=Layout(flex='2'))
         # def on_sm_change(e):
         #     if self.smooth.value == 'No':
         #         self.SMstrength.disabled = True
@@ -526,7 +518,7 @@ class LC1D(VBox):
         return VBox([   HBox([info2, info3, info4, info1],
                                 layout=Layout(justify_content="space-around")),
                         HBox([labelms, self.lcread, self.LCpos, self.LCspread, space1, self.bMS]),
-                        HBox([labellc, self.msread, self.MSpos, self.MSspread, self.SMstrength,self.bLC]),
+                        HBox([labellc, self.msread, self.MSpos, self.MSspread, self.SMstrength, self.bLC]),
                         self.fig.canvas],
                     layout=Layout(width='100%',border='solid 2px',))
 
@@ -677,13 +669,13 @@ class LC1D(VBox):
 
 class MS2Dscene(object):
     "a widget to set all MS tools into one screen"
-    def __init__(self, show=True, style=True, Debug=DEBUG):
+    def __init__(self, show=True, style=True, Debug=p.DEBUG):
         # header
         #   filechooser
-        self.base = BASE
+        self.base = p.BASE
         self.filechooser = FI.FileChooser(self.base, dotd=False, accept=('LC-MS',))
         self.datap = None
-        self.MAX_DISP_PEAKS = NbMaxDisplayPeaks
+        self.MAX_DISP_PEAKS = p.NbMaxDisplayPeaks
         self.debug = Debug
 
         #   buttons
