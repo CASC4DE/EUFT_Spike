@@ -168,16 +168,32 @@ def comp_sizes(d0,  zflist=None, szmlist=None, largest = LARGESTDATA, sizemin = 
     if (zflist==None) and (szmlist==None):
         zflist=[0]  # do at least something
     szres = []
+
     if (szmlist!=None):         # generate from parameters
         sm1,sm2 = szmlist
-        while True:
-            (si1,si2) = pred_sizes(d0, (sm1,sm2))
-            if debug > 0: print((sm1, sm2))
-            if debug > 0: print((si1, si2))
-            if si1*si2 <= 1.5*SIZEMIN*SIZEMIN:
+        first_loop = True       # 1st loop is specal as there is no downsampling to do
+        while True:      # reduce progressively the multiplier
+            (psi1, psi2) = pred_sizes(d0, (sm1,sm2))   # initial prediction of sizes, ok for FFT
+            if not first_loop:
+                if si1%psi1 != 0:       # check that we'll be able to do downsample
+                    psi1 = si1          # if not, do not reduce
+                if si2%psi2 != 0:       # check that we'll be able to do downsample
+                    psi2 = si2          # if not, do not reduce
+                if psi1 < SIZEMIN//2:          # if too small, 
+                    psi1 = si1           
+                if psi2 < SIZEMIN//2:          # if too small, 
+                    psi2 = si2
+            if debug > 0: print('sm:',(sm1, sm2))
+            if debug > 0: print('psi:',(psi1, psi2))
+            if not first_loop:
+                if (si1,si2) == (psi1, psi2):   # infinite loop
+                    break
+            si1, si2 = psi1, psi2
+            if si1*si2 <= 2*SIZEMIN*SIZEMIN:
                 break
             szres.append( (si1,si2))
             (sm1, sm2) = (0.25*sm1, 0.25*sm2)   # divide by 4, and insure floats
+            first_loop = False
     if (zflist!=None):
         for zf in zflist:
             szres.append( pred_sizes_zf(d0, zf) )
@@ -196,7 +212,7 @@ def comp_sizes(d0,  zflist=None, szmlist=None, largest = LARGESTDATA, sizemin = 
         while sz2 >= sizemin:
             sz2 //= 2
         if not (sz1,sz2) in sizes:
-            sizes.append( (2*sz1, 2*sz2) )
+            sizes.append( (sz1, sz2) )
     if debug>0: print("sizes to process", sizes)
     return sizes
 
