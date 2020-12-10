@@ -59,12 +59,12 @@ For questions and more information check the [dedicated forum](https://forum.cas
 - interface version: {1}
 '''.format(spike.version.version, version)
 
-    temprel = '''
-- 1.0.04 - xx June 2020
-    - improved documentation
-'''
     release = '''
 ### Release notes
+- 1.1 - Dec 2020
+    - First version with 2D-FTICR-MS
+- 1.0.04 - 20 June 2020
+    - improved documentation
 - 1.0.03 - 5 June 2020
     - possibility to peak-pick spectra and chromatograms extracted from a LC-MS experiment
     - possibility to save spectra and chromatograms extracted from a LC-MS experiment

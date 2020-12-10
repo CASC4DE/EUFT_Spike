@@ -1,5 +1,5 @@
 # script to run to install the environement in the user directory
-# MAD May 2020
+# MAD dec 2020
 
 # see update.sh  for updating an existing account
 
@@ -14,7 +14,7 @@
 # sudo su new_user
 # then execute this script 
 
-version="1.02"
+version="1.1"
 echo "EUFT Installation - version $version"
 # init of conda
 /opt/anaconda3/condabin/conda init
@@ -56,7 +56,8 @@ ls Easy*.py |xargs -n 1 jupytext --to notebook
 
 # and move to $HOME
 mv EasyDisplayLCFTICR.ipynb    ../LCMS_Tool.ipynb
-mv EasyProcessFTICR-MS.ipynb  ../Process_Tool.ipynb
+mv EasyProcessFTICR-MS.ipynb   ../Process_Tool.ipynb
+mv EasyDisplayFTICR2D.ipynb    ../2D_Tool.ipynb
 
 cd ..
 

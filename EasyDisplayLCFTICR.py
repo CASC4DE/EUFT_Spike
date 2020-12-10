@@ -23,7 +23,7 @@
 # %%
 # adapt sys.path to local env
 import sys, os
-if os.uname().nodename == 'madMacBook':  # a switch for the development environment
+if os.uname().nodename == 'madMacBook':  # a switch for the development environment, add yours if need be
     print('on my Mac')
     os.chdir('..')
 else:
@@ -66,7 +66,7 @@ For more information see `Documentation` below.
 """)
 acc2 = widgets.Accordion(children=[howto,])
 acc2.set_title(0,'How to handle LC-MS experiments')
-acc2.selected_index = 0
+acc2.selected_index = None
 acc2
 
 # %%
@@ -219,8 +219,7 @@ this is not used, and the equation is always the same.
 This set-up will be changed in the future for a more flexible and robust set-up
 ''')
 
-comment = dodoc('''## *comments*
-
+comment = dodoc('''
 This is a temporary version.
 
 expect improvements, as certain parts are still in development

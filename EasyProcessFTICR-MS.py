@@ -21,7 +21,7 @@
 # %%
 # adapt sys.path to local env
 import sys, os
-if os.uname().nodename == 'madMacBook':  # a switch for the development environment
+if os.uname().nodename == 'madMacBook':  # a switch for the development environment, add yours if need be
     print('on my Mac')
     os.chdir('..')
 else:

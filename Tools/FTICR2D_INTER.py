@@ -13,9 +13,11 @@ and the notebook to be opened with %matplotlib widget
 """
 import os.path as op
 from pathlib import Path
+import traceback
 
 import tables
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 from ipywidgets import interact, fixed, HBox, VBox, GridBox, Label, Layout, Output, Button
 import ipywidgets as widgets
 from IPython.display import display, Markdown, HTML, Image, clear_output
@@ -28,11 +30,9 @@ from spike.FTICR import FTICRData
 
 from . import FTICR_INTER as FI
 from . import utilities as U
-
 from . import parameters as p
 
-
-# TOOLS FOR 2D FTICR
+#
 class MR(object):
     "this class handles multiresolution datasets"
     def __init__(self, name, report=True, Debug=False):
@@ -64,6 +64,11 @@ class MR(object):
             else:
                 dl.unit='m/z'
                 self.data.append(dl)
+        # load diagonal
+        try:
+            self.diag = FTICR.FTICRData(name=self.name, mode="onfile", group="diagonal")
+        except tables.NoSuchNodeError:
+            self.diag = self.data[0].diagonal().plus()
     def report(self):
         "report object content"
         print (self.name)
@@ -129,15 +134,15 @@ class MR(object):
             dl._absmax = self.absmax        
 
 class MR_interact(MR):
-    def __init__(self, name, figsize=None, report=True, show=True, Debug=False):
+    def __init__(self, name, figsize=None, report=True, show=True, Debug=p.DEBUG):
         """
         creates an interactive object.
         if display is True (default) the graphical tool will be displayed.
         """
-        super(self.__class__, self).__init__(name, report=report, Debug=Debug)
+        super(self.__class__, self).__init__(name=name, report=report, Debug=Debug)
         self.vlayout = Layout(width='60px')
-        self.pltaxe = None
-        self.pltaxe1D = None
+        self.spec_ax = None
+        self.spec_ax1D = None
         if figsize is None:
             self.figsize = (10,8)
         else:
@@ -173,68 +178,111 @@ class MR_interact(MR):
             style=style, layout=lay)
         self.z2h = wf(  min=ref.axis2.lowmass, max=ref.highmass[1],
             style=style, layout=lay)
-        labelhd =  widgets.HTML('Highest displayed mass:')
         self.highestdisplayed = wf( min=min(ref.axis1.lowmass,ref.axis2.lowmass)+10,
                                     max=max(self.highmass),
                                     tooltip='Highest displayed mass', style=style, layout=lay)
         self.highestdisplayed.value  = max(self.highmass)
-        self.highestdisplayed.observe(self.fullzoom)
+        self.highestdisplayed.observe(self.reset)
         self.fullzoom(None)
         self.bb('b_zupdate', 'Apply', lambda e : self.display(),
             layout=Layout(width='100px'), tooltip="Set zoom to values")
         self.bb('b_reset', 'Reset', self.reset,
-            layout=Layout(width='100px'), tooltip="Set zoom to values")
+            layout=Layout(width='100px'), tooltip="Reset zoom to default values")
         blank = widgets.HTML("&nbsp;",layout=lay)
-        label =  widgets.HTML('Zoom Window (in <i>m/z</i>)')
-        innerbox = VBox([ label,
+        innerbox = VBox([widgets.HTML('Zoom Box (in <i>m/z</i>)'),
                     HBox([blank,    self.z1h, blank]),  
                     HBox([self.z2l, self.b_zupdate,    self.z2h]),
                     HBox([blank,    self.z1l, blank]),  
                 ]
             )
-        return HBox([innerbox,labelhd,self.highestdisplayed])
+        self.scale1D = wf( value=1.0, min=0.5, max=20, step=0.1,
+            style=style, layout=lay)
+        self.scale1D.observe(self.obnew)
+        toolbox = VBox([HBox([widgets.HTML('Highest displayed mass:'),self.highestdisplayed]),
+                        HBox([widgets.HTML('Side spectra scale:'), self.scale1D])
+                    ])
+        return HBox([innerbox,toolbox])
     def spec_box(self):
         "defines the spectral box widget"
-        self.scale = widgets.FloatSlider(description='scale:', value=1.0, min=1.0, max=20, step=0.1,
+        self.scale = widgets.FloatSlider(description='scale:', value=1.0, min=0.5, max=32, step=0.1,
                     tooltip='Set display scale', layout=Layout(width='100px', height='400px'), continuous_update=p.HEAVY,
                     orientation='vertical')
         self.scale.observe(self.ob)
         self.bb('b_redraw', 'Redraw', lambda e : self.display(),
-            layout=Layout(width='100px'))
+            layout=Layout(width='100px'),tooltip="Redraw spectrum with current values")
         box = VBox([self.b_reset, self.scale, self.b_redraw])
-        return HBox([box, self.pltfig.canvas])
+        return HBox([box, self.fig.canvas])
     def scale_up(self, step):
         self.scale.value *= 1.1892**step # 1.1892 is 4th root of 2.0
     def show(self):
         "actually show the graphical tool and the interactive spectrum"
         display(self.box)
         display(self.sbox)
-        self.display()
+        self.display(new=True)
     def ob(self, event):
         "observe events and display"
         if event['name'] != 'value':
             return
         self.display()
-    def display(self, zoom=None, scale=None):
+    def obnew(self, event):
+        "observe events and display side spectra"
+        if event['name'] != 'value':
+            return
+        self.display(new=True)
+    def display(self, new=False):
         "computes pictures (display in the SPIKE sense - not ipywidget one)"
-        if zoom is not None:
-            _zoom = zoom
-        else:
-            _zoom = (self.z1l.value, self.z1h.value, self.z2l.value, self.z2h.value)
-        if scale is not None:
-            self.scale.value = scale
-        datasel, zz = self.to_display(_zoom)
+        zoom = (self.z1l.value, self.z1h.value, self.z2l.value, self.z2h.value)
+        datasel, zz = self.to_display(zoom)
         corner = (zz[1],zz[3])
-        reso = [corner[i]/datasel.axes(i+1).deltamz(corner[i]) for i in range(2)]
+        reso = corner/datasel.axis2.deltamz(corner)
 #        print(corner, reso)
         self.check_fig()  # insure figure is there
 #        with self.out:
-        self.pltaxe.clear() # clear 
-        datasel.display(zoom=zz, scale=self.scale.value, absmax=self.absmax, 
-            xlabel='F2    m/z', ylabel='F1    m/z',
-            show=False, title=self.title,  figure=self.pltaxe)
-        self.pltaxe.text(corner[1],corner[0],"D#%d R: %.0fx%.0f"%(self.data.index(datasel)+1, *reso))
+        if new:
+            self.top_ax.clear() # clear
+            self.diag.display(figure=self.top_ax, title=self.title, scale=self.scale1D.value, label='diagonal')
+            self.top_ax.legend()
+            self.side_ax.clear() # clear
+            self.side_ax.plot(self.diag.get_buffer(),self.diag.axis1.mass_axis())
+            self.side_ax.set_xlim(xmax=self.diag.absmax/self.scale1D.value)
+        self.spec_ax.clear() # clear 
+        datasel.display(zoom=zz, scale=self.scale.value, 
+            xlabel='F2   m/z', ylabel='F1   m/z ',
+            show=False, figure=self.spec_ax)
+        self.spec_ax.legend(['2D contour'])
+        self.spec_ax.text(corner[1],corner[0], "Resolution #%d"%(self.data.index(datasel)+1))
+        self.side_ax.set_ybound(zz[0], zz[1])   # for some strange reason (mpl 3.1.0 bug ?), this is needed...
+        self.top_ax.set_xbound(zz[2], zz[3])
+        if self.Debug:
+            xb = self.top_ax.get_xbound()
+            yb = self.side_ax.get_ybound()
+            self.log.append(('display',zz, yb, xb))
+
     def check_fig(self):
+        "create figure if missing"
+        if self.spec_ax is None:
+            grid = {'height_ratios':[1,4],'hspace':0,'wspace':0}
+            grid['width_ratios']=[7,1]
+    #        fig, self.axarr = plt.subplots(2, 1, sharex=True, figsize=fsize, gridspec_kw=grid)
+            plt.ioff()
+            self.fig = plt.figure(figsize=self.figsize, constrained_layout=False)
+            spec2 = gridspec.GridSpec(ncols=2, nrows=2, figure=self.fig, **grid)
+            axarr = np.empty((2,2), dtype=object)
+            axarr[0,0] = self.fig.add_subplot(spec2[0, 0])
+            axarr[1,0] = self.fig.add_subplot(spec2[1, 0],sharex=axarr[0, 0])
+            axarr[1,1] = self.fig.add_subplot(spec2[1, 1],sharey=axarr[1, 0])
+            self.top_ax = axarr[0,0]
+            self.spec_ax = axarr[1,0]
+            self.side_ax = axarr[1,1]
+            self.box = self.zoom_box()
+            self.sbox = self.spec_box()
+            self.set_on_redraw()
+            # # cursor
+            # cursor = Cursor.Cursor(self.spec_ax)
+            # self.fig.canvas.mpl_connect('motion_notify_event', cursor.on_mouse_move)
+            plt.ion()
+
+    def _check_fig(self):
         "create figure if missing"
         if self.pltaxe is None:
             plt.ioff()
@@ -247,13 +295,14 @@ class MR_interact(MR):
             self.sbox = self.spec_box()
             plt.ion()
 
+
     def update(self, e):
         "update internal zoom coordinates"
 #        self.track.append((self._zoom, self.scale))
 #        self.point = -1 # means last
         #print('update')
-        xb = self.pltaxe.get_xbound()
-        yb = self.pltaxe.get_ybound()
+        xb = self.spec_ax.get_xbound()
+        yb = self.spec_ax.get_ybound()
         #print( xb, yb)
         self.z1l.value = yb[0]
         self.z1h.value = yb[1]
@@ -264,9 +313,9 @@ class MR_interact(MR):
             print('you pressed', event.button, event.xdata, event.ydata)
         def on_scroll(event):
             self.scale_up(event.step)
-        cidd = self.pltfig.canvas.mpl_connect('draw_event', self.update)
-        cids = self.pltfig.canvas.mpl_connect('scroll_event', on_scroll)
-#        cidc = self.pltfig.canvas.mpl_connect('button_press_event', on_press)
+        cidd = self.fig.canvas.mpl_connect('draw_event', self.update)
+        cids = self.fig.canvas.mpl_connect('scroll_event', on_scroll)
+#        cidc = self.fig.canvas.mpl_connect('button_press_event', on_press)
     def reset(self, b):
         self.scale.value = 1.0
         self.fullzoom(None)
@@ -303,18 +352,21 @@ class MR_interact(MR):
 # ##################### 1D ##################
     def I1D(self):
         "show the 1D selector"
-        self.r1D = None         # dataset  object
-        self.t1D = ''           #  'row' or 'col'
-        self.i1D = None         # index in 2D
+        self.r1D = None
+        self.t1D = ''
+        self.i1D = None
         self.check_fig1D()
         display(self.ext_box())
 
     def check_fig1D(self):
-        if self.pltaxe1D is None:
-            fg,ax = plt.subplots(figsize=(1.5*self.figsize[0], 0.75*self.figsize[0]))
+        "check if 1D display zone is available and create if needed"
+        if self.spec_ax1D is None:
+            plt.ioff()
+            fg,ax = plt.subplots(figsize=(1.0*self.figsize[0], 0.75*self.figsize[0]))
             ax.text(0.1, 0.8, 'Empty - use "horiz" and "vert" buttons above')
-            self.pltaxe1D = ax
+            self.spec_ax1D = ax
             self.fig1D = fg
+            plt.ion()
 
     def ext_box(self):
         "defines the interactive tools for 1D"
@@ -334,7 +386,7 @@ class MR_interact(MR):
                 rint += inc
             self.z1.value = ref.axis1.itomz(rint)
             if self.t1D == 'col':
-                self.pltaxe1D.clear()
+                self.spec_ax1D.clear()
                 self.r1D = None
             if self.b_accu.value == 'sum' and self.r1D is not None:
                 self.r1D += ref.row(rint)
@@ -353,7 +405,7 @@ class MR_interact(MR):
                 rint += inc
             self.z2.value = ref.axis2.itomz(rint)
             if self.t1D == 'row':
-                self.pltaxe1D.clear()
+                self.spec_ax1D.clear()
                 self.r1D = None
             if self.b_accu.value == 'sum' and self.r1D is not None:
                 self.r1D += ref.col(rint)
@@ -384,9 +436,10 @@ class MR_interact(MR):
                 value='off', description='Accumulate plots while scanning:', style=style)
         return VBox([ widgets.HTML('<h3>Extract 1D MS Spectrum going through given F1-F2 coordinates</h3>'),
                     HBox([widgets.HTML("<B>coord:</B>"),self.z1,
-                          self.b_row, self.b_rowp1, self.b_rowm1, self.b_accu]),
+                          self.b_row, self.b_rowm1, self.b_rowp1, self.b_accu]),
                     HBox([widgets.HTML("<B>coord:</B>"),self.z2,
-                          self.b_col, self.b_colp1, self.b_colm1])])
+                          self.b_col, self.b_colm1, self.b_colp1]),
+                    self.fig1D.canvas])
     def display1D(self):
         "display the selected 1D"
         if self.t1D == 'row':
@@ -396,7 +449,7 @@ class MR_interact(MR):
             title = 'vertical extract at F2=%f m/z (index %d)'%(self.z2.value, self.i1D)
             label = str(self.z2.value)
         if self.b_accu.value != 'graphic':
-            self.pltaxe1D.clear()
+            self.spec_ax1D.clear()
             label = None
         self.r1D.display(xlabel='m/z', show=False, figure=self.pltaxe1D, new_fig=False, label=label, title=title)
 
@@ -594,7 +647,7 @@ class SuperImpose(object):
 class MS2Dscene(HBox):
     "a widget to set all MS tools into one screen"
     def __init__(self, show=True, style=True, Debug=p.DEBUG):
-        super(self.__class__, self).__init__()
+        super(MS2Dscene, self).__init__()
         # header
         #   filechooser
         self.base = p.BASE
@@ -610,7 +663,7 @@ class MS2Dscene(HBox):
         self.bload.on_click(self.load2D)
         #       info
         self.binfo = Button(description='Info',  #layout=Layout(width='15%'),
-                tooltip='Info on selected experiment')
+                tooltip='Info on selected experiment, without loading')
         self.binfo.on_click(self.info2D)
 
         # GUI set-up and scene

@@ -1,6 +1,6 @@
 # update of a user account already installed
 
-echo update of 5 june 2020
+echo update of 10 dec 2020
 
 echo "=== cleaning previous stuff"
 find $HOME -path '*.pyc' -delete
@@ -22,6 +22,7 @@ ls Easy*.py |xargs -n 1 jupytext --to notebook
 # and move to $HOME
 mv EasyDisplayLCFTICR.ipynb    ../LCMS_Tool.ipynb
 mv EasyProcessFTICR-MS.ipynb  ../Process_Tool.ipynb
+mv EasyDisplayFTICR2D.ipynb    ../2D_Tool.ipynb
 
 cd ..
 # pour enlever les plugins inutiles:

@@ -776,11 +776,11 @@ class MS2Dscene(object):
         try:
             self.MR2D = MR_interact(fullpath, 
                 report=False, show=False, Debug=self.debug)
-        except: # (FileNotFoundError NoSuchNodeError):
+        except (FileNotFoundError, IOError):
             self.MR2D = None
             self.done()
             with self.waitarea:
-                print('Error while loading',self.selected, 'file not found or wrong format')
+                print('Error while loading',self.selected, ' - file not found or wrong format')
                 self.waitarea.clear_output(wait=True)
             with self.outinfo:
                 traceback.print_exc()
