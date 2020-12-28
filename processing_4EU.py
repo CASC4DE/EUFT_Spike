@@ -854,7 +854,10 @@ def main(argv = None):
     #### get parameters from configuration file - store them in a parameter object
     cp = NPKConfigParser()
     print('address configfile is ', configfile)
-    cp.readfp(open(configfile,'r'))
+    try:
+        cp.read_file(open(configfile,'r'))
+    except:
+        cp.readfp(open(configfile,'r'))
     print("reading config file")
     param = Proc_Parameters(cp) # parameters from config file.. 
     # get optionnal parameters

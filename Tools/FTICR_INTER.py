@@ -15,6 +15,7 @@ import os.path as op
 from pathlib import Path
 import traceback
 import subprocess
+import json
 import tables
 import matplotlib.pyplot as plt
 from ipywidgets import interact, fixed, HBox, VBox, GridBox, Label, Layout, Output, Button
@@ -46,7 +47,8 @@ version = "1.1.0"            # 1.1 for 2D-MS
 
 def about():
     'returns the about string in Markdown'
-    val = '''This program is developed by [CASC4DE](https://www.casc4de.eu) and is based on 
+    val = '''This set of programs is developed by [CASC4DE](https://www.casc4de.eu) and is based on 
+on the following tools:
 - the [Spike](https://forum.casc4de.eu/p/2-spike) processing program,
 - the [scientific python](https://www.scipy.org/) language,
 - the [Jupyter](https://jupyter.org/) graphic environment,
@@ -104,68 +106,164 @@ def injectcss():
     </style>
     '''))
 
+# modif dec 2020: File chooser tools
+# A small object tto handle file lits
+# The idea is to maintain the type of all datasets found in the user directory.
+# Because the files may be over a slow file system (eg; FUSEd Seafile) 
+#  a small db of file type is maintained.
+#  currently a simple json file stored and retrieved
+#  file dates insure data integrety
+
 from collections import namedtuple
 MSfile = namedtuple('MSfile',['fullpath', 'spath', 'ftype'])
 MSfile.__doc__ = "a micro class for FileChooser"
 # redefining __str__ for nicer display
 def msstr(msf):
     return "%s \t \t %s"%(msf.ftype, msf.spath)
-MSfile.__str__ = msstr   
+MSfile.__str__ = msstr
 
-def filetype(path):
-    "returns filetype as a string"
-    if path.suffix == '.d':
-        if (path/'ser').exists():
-            toreturn = 'ser'
-        elif (path/'fid').exists():
-            toreturn = 'fid'
-        else:
-            toreturn = '???'
-    elif path.suffix == '.msh5':
-        try:
-            d = FTICRData(name=str(path), mode='onfile')
-        except:
-            return '???'
-        if d.dim == 1:
-            toreturn = 'MS'
-        elif d.dim == 2:
+class File_list():
+    def __init__(self, base='DATA', dotd=True, msh5=True,
+                    accept=('fid', 'FID', 'ser', 'MS', 'LC-MS', '2D-MS')):
+        self.base = base
+        self.dotd = dotd
+        self.msh5 = msh5
+        self.accept = accept
+        self.file_dico = self.build_dico()
+        if DEBUG: print(len(self.file_dico.keys()))
+        self._list = self.list_from_dico()
+#        self._list = self.build_list()
+    @property
+    def list(self):
+        return self._list
+    def filetype(self, path):
+        """returns filetype as a string
+        filetype can be:
+        FID: old style transient (Apex0)
+        fid: new style transient
+        ser: series of transient
+        MS: Simple processed spectrum
+        LC-MS: LC-MS 2D processed spectrum
+        2D-MS: 2DFTMS processed spectrum
+        ???: undeciferable
+        """
+        if DEBUG: print('**filetype** path:',path, end=':')
+        if path.suffix == '.d':
+            if (path/'ser').exists():
+                toreturn = 'ser'
+            elif (path/'fid').exists():
+                toreturn = 'fid'
+            else:
+                toreturn = '???'
+        elif path.suffix == '.msh5':
             try:
-                pj = FTICRData(name=str(path), mode="onfile", group="projectionF2")
-                pj.hdf5file.close()
-                toreturn = 'LC-MS'
-            except tables.NoSuchNodeError:
-                toreturn = '2D-MS'
+                d = FTICRData(name=str(path), mode='onfile')
+            except:
+                return '???'
+            if d.dim == 1:
+                toreturn = 'MS'
+            elif d.dim == 2:
+                try:
+                    pj = FTICRData(name=str(path), mode="onfile", group="projectionF2")
+                    pj.hdf5file.close()
+                    toreturn = 'LC-MS'
+                except tables.NoSuchNodeError:
+                    toreturn = '2D-MS'
+            else:
+                toreturn = '???'
+            d.hdf5file.close()
+        elif path.name == 'acqus':
+            toreturn = 'FID'
         else:
             toreturn = '???'
-        d.hdf5file.close()
-    elif path.name == 'acqus':
-        toreturn = 'FID'
-    else:
-        toreturn = '???'            
-    return toreturn
+        if DEBUG: print('**filetype** type:',toreturn)
+        return toreturn
+    @property
+    def dicopath(self):
+        """
+        the Path(name) of the json file
+        """
+        return Path(self.base)/'filetypesDB.json'
+    def build_dico(self):
+        """
+        loads the ftype dico from json file, and updates for new files
+        finally store the json file again, creates it if missing
+        """
+        dicofile = self.dicopath
+        if (dicofile).exists():
+            dicodate = dicofile.stat().st_mtime
+            dico = json.load(dicofile.open())
+        else:
+            dicodate = 0
+            dico = {}
+        for i in Path(self.base).glob('**/*.d'):     # Apex and Solarix
+            if i.is_dir() and i.stat().st_mtime > dicodate:
+                if DEBUG: print('adding', i)
+                ftype = self.filetype(i)
+                dico[str(i)] =  ftype 
+        for i in Path(self.base).glob('**/acqus'):   # "Apex0"
+            fid = i.parent/'fid'
+            if (fid).exists() and fid.stat().st_mtime > dicodate:
+                if DEBUG:print('adding', fid)
+                ftype = self.filetype(i)
+                dico[str(fid)] = ftype
+        for i in Path(self.base).glob('**/*.msh5'):  # processed files
+            if i.stat().st_mtime > dicodate:
+                if DEBUG:print('adding', i)
+                ftype = self.filetype(i)
+                dico[str(i)] = ftype
+        try:
+            json.dump(dico, dicofile.open('w'), indent=2)
+        except:
+            print('*** Error while storing the filetype DB')
+        return dico
 
-def build_list(base='DATA', dotd=True, msh5=True,
-                accept=('fid', 'FID', 'ser', 'MS', 'LC-MS', '2D-MS')):
-    flist = []
-    if dotd:
-        flist.append('   --- raw ---')
-        for i in Path(base).glob('**/*.d'):     # Apex and Solarix
-            if i.is_dir():
-                ftype = filetype(i)
-                if ftype in accept:
-                    flist.append(MSfile(i, i.relative_to(base), ftype)) 
-        for i in Path(base).glob('**/acqus'):   # "Apex0"
-            if (i.parent/'fid').exists():
-                ftype = filetype(i)
-                if ftype in accept:
-                    flist.append(MSfile((i.parent/'fid'), i.parent.relative_to(base), ftype)) 
-    if msh5:
-        flist.append('   --- processed ---')
-        for i in Path(base).glob('**/*.msh5'):
-            ftype = filetype(i)
-            if ftype in accept:
-                flist.append(MSfile(i, i.relative_to(base), ftype)) 
-    return flist
+    def list_from_dico(self):
+        """given the computed dico of filetypes - return a list corresponding to paramters
+        dotd (raw files), msh5 (processed) and accept (filtetypes)
+        """
+        rflist = ['   --- raw files ---']
+        pflist = ['   --- processed ---']
+        flist = []
+        for i,ftype in self.file_dico.items():
+            if ftype in self.accept:
+                iP = Path(i)
+                if ftype in ('fid', 'FID', 'ser') and self.dotd:
+                        rflist.append(MSfile(iP, iP.relative_to(self.base), ftype)) 
+                elif self.msh5 and i.endswith('.msh5'):
+                        pflist.append(MSfile(iP, iP.relative_to(self.base), ftype))
+        if self.dotd:
+            flist = rflist
+        if self.msh5:
+            flist += pflist
+        return  flist
+
+    def build_list(self):
+        """
+        old style code - not used any more - was too slow over fuse.
+        equiv to build_dico / list_from_dico
+        """
+        flist = []
+        if self.dotd:
+            flist.append('   --- raw ---')
+            for i in Path(self.base).glob('**/*.d'):     # Apex and Solarix
+                if i.is_dir():
+                    ftype = self.filetype(i)
+                    if ftype in self.accept:
+                        flist.append(MSfile(i, i.relative_to(self.base), ftype)) 
+            for i in Path(self.base).glob('**/acqus'):   # "Apex0"
+                if (i.parent/'fid').exists():
+                    ftype = self.filetype(i)
+                    if ftype in self.accept:
+                        flist.append(MSfile((i.parent/'fid'), i.parent.relative_to(self.base), ftype)) 
+        if self.msh5:
+            flist.append('   --- processed ---')
+            for i in Path(self.base).glob('**/*.msh5'):
+                ftype = self.filetype(i)
+                if ftype in self.accept:
+                    flist.append(MSfile(i, i.relative_to(self.
+                    base), ftype))
+        return flist
 
 class FileChooser(VBox):
     """a simple chooser for Jupyter for selecting *.d directories
@@ -189,7 +287,8 @@ class FileChooser(VBox):
         super().__init__()
         self.base = base
         self.filter = {'base':base, 'dotd':dotd, 'msh5':msh5, 'accept':accept}
-        flist = build_list(**self.filter)
+        files = File_list(**self.filter)
+        flist = files.list
         self.selec = widgets.Select(options=flist, rows=min(8,len(flist)), layout={'width': 'max-content'})
         self.bref = Button(description='Refresh',layout=Layout(width='10%'),
                 tooltip='Refresh list')
@@ -197,7 +296,9 @@ class FileChooser(VBox):
         first_line = HBox([widgets.HTML('<b>Choose one experiment</b>&nbsp;&nbsp;'), self.bref])
         self.children  = [first_line, self.selec ]
     def refresh(self, e):
-        self.selec.options = build_list(**self.filter)
+        files = File_list(**self.filter)
+        flist = files.list
+        self.selec.options = files.list
         self.selec.rows = min(8,len(self.selec.options))
     @property
     def selected(self):
