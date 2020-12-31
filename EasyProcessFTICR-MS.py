@@ -73,6 +73,7 @@ beta:
 - ordre voilà antialphab
 - close to exit
 - "panels" / tabs ,
+- INFO pour les 1D msh5
 
 to do:
 - export to mzml

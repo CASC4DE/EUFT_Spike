@@ -136,16 +136,9 @@ class File_list():
     @property
     def list(self):
         return self._list
-    def filetype(self, path):
-        """returns filetype as a string
-        filetype can be:
-        FID: old style transient (Apex0)
-        fid: new style transient
-        ser: series of transient
-        MS: Simple processed spectrum
-        LC-MS: LC-MS 2D processed spectrum
-        2D-MS: 2DFTMS processed spectrum
-        ???: undeciferable
+    def _filetype(self, path):
+        """
+        old version - VERY SLOW over seafile
         """
         if DEBUG: print('**filetype** path:',path, end=':')
         if path.suffix == '.d':
@@ -172,6 +165,64 @@ class File_list():
             else:
                 toreturn = '???'
             d.hdf5file.close()
+        elif path.name == 'acqus':
+            toreturn = 'FID'
+        else:
+            toreturn = '???'
+        if DEBUG: print('**filetype** type:',toreturn)
+        return toreturn
+    def filetype(self, path):
+        """returns filetype as a string
+        filetype can be:
+        FID: old style transient (Apex0)
+        fid: new style transient
+        ser: series of transient
+        MS: Simple processed spectrum
+        LC-MS: LC-MS 2D processed spectrum
+        2D-MS: 2DFTMS processed spectrum
+        ???: undeciferable
+        """
+        from tables.file import open_file
+        from tables.group import Group
+        from tables.leaf import Leaf
+        if DEBUG: print('**filetype** path:',path, end=':')
+        if path.suffix == '.d':
+            if (path/'ser').exists():
+                toreturn = 'ser'
+            elif (path/'fid').exists():
+                toreturn = 'fid'
+            else:
+                toreturn = '???'
+        elif path.suffix == '.msh5':   # we'll read directly into the file - much faster!
+            try:
+                h5file = open_file(str(path), 'r')
+            except:
+                return '???'
+            with h5file:
+                nodename = '/resol1/axes'
+                try:
+                    nodeobject = h5file.get_node(nodename)
+                except:
+                    return '???'
+                if isinstance(nodeobject, Leaf):
+                #    print(path,nodename,'Leaf', nodeobject.shape, str(nodeobject))
+                    dim = nodeobject.shape[0]
+                elif isinstance(nodeobject, Group):
+                    print(path,nodename,'is a Group  ???  - file ignored')
+                    return '???'
+                else:
+                    # This should never happen
+                    return '???'
+                if dim == 1:
+                    toreturn = 'MS'
+                elif dim == 2:
+                    try:
+                        nodeobject = h5file.get_node('/projectionF2')
+                        toreturn = 'LC-MS'
+                    except tables.NoSuchNodeError:
+                        toreturn = '2D-MS'
+                else:
+                    toreturn = '???'
         elif path.name == 'acqus':
             toreturn = 'FID'
         else:
@@ -445,7 +496,7 @@ class IFTMS(object):
                 else:
                     if self.datap.DATA != None:  # a processed has been loaded
                         display( Markdown("# Processed Dataset\n%s\n"%(self.selected,)) )
-                        print(self.datap.data)
+                        print(self.datap.DATA)
                         with open('audit_trail.txt','r') as F:
                             display(Markdown(F.read()))
     def wait(self):
