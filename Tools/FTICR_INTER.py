@@ -180,11 +180,9 @@ class File_list():
         MS: Simple processed spectrum
         LC-MS: LC-MS 2D processed spectrum
         2D-MS: 2DFTMS processed spectrum
+        2D-ser: a Bruker ser imported from a ser / temporary file for 2D processing
         ???: undeciferable
         """
-        from tables.file import open_file
-        from tables.group import Group
-        from tables.leaf import Leaf
         if DEBUG: print('**filetype** path:',path, end=':')
         if path.suffix == '.d':
             if (path/'ser').exists():
@@ -195,7 +193,7 @@ class File_list():
                 toreturn = '???'
         elif path.suffix == '.msh5':   # we'll read directly into the file - much faster!
             try:
-                h5file = open_file(str(path), 'r')
+                h5file = tables.file.open_file(str(path), 'r')
             except:
                 return '???'
             with h5file:
@@ -204,10 +202,10 @@ class File_list():
                     nodeobject = h5file.get_node(nodename)
                 except:
                     return '???'
-                if isinstance(nodeobject, Leaf):
+                if isinstance(nodeobject, tables.leaf.Leaf):
                 #    print(path,nodename,'Leaf', nodeobject.shape, str(nodeobject))
                     dim = nodeobject.shape[0]
-                elif isinstance(nodeobject, Group):
+                elif isinstance(nodeobject, tables.group.Group):
                     print(path,nodename,'is a Group  ???  - file ignored')
                     return '???'
                 else:
@@ -219,8 +217,15 @@ class File_list():
                     try:
                         nodeobject = h5file.get_node('/projectionF2')
                         toreturn = 'LC-MS'
+                        found = True
                     except tables.NoSuchNodeError:
-                        toreturn = '2D-MS'
+                        found = False
+                    if not found:
+                        try:
+                            nodeobject = h5file.get_node('/resol2/axes')
+                            toreturn = '2D-MS'
+                        except tables.NoSuchNodeError:
+                            toreturn = '2D-ser'
                 else:
                     toreturn = '???'
         elif path.name == 'acqus':
@@ -234,7 +239,10 @@ class File_list():
         """
         the Path(name) of the json file
         """
-        return Path(self.base)/'filetypesDB.json'
+        eudir = Path.home()/'.eufticr'
+        if not eudir.exists():
+            eudir.mkdir()
+        return eudir/'filetypesDB.json'
     def build_dico(self):
         """
         loads the ftype dico from json file, and updates for new files

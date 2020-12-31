@@ -16,7 +16,6 @@
 
 # %% [markdown]
 # # Processing and Analysis of MS FTICR data
-# ### *EU-FTICR-MS Network*
 
 # %%
 # adapt sys.path to local env
