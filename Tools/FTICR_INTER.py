@@ -136,41 +136,7 @@ class File_list():
     @property
     def list(self):
         return self._list
-    def _filetype(self, path):
-        """
-        old version - VERY SLOW over seafile
-        """
-        if DEBUG: print('**filetype** path:',path, end=':')
-        if path.suffix == '.d':
-            if (path/'ser').exists():
-                toreturn = 'ser'
-            elif (path/'fid').exists():
-                toreturn = 'fid'
-            else:
-                toreturn = '???'
-        elif path.suffix == '.msh5':
-            try:
-                d = FTICRData(name=str(path), mode='onfile')
-            except:
-                return '???'
-            if d.dim == 1:
-                toreturn = 'MS'
-            elif d.dim == 2:
-                try:
-                    pj = FTICRData(name=str(path), mode="onfile", group="projectionF2")
-                    pj.hdf5file.close()
-                    toreturn = 'LC-MS'
-                except tables.NoSuchNodeError:
-                    toreturn = '2D-MS'
-            else:
-                toreturn = '???'
-            d.hdf5file.close()
-        elif path.name == 'acqus':
-            toreturn = 'FID'
-        else:
-            toreturn = '???'
-        if DEBUG: print('**filetype** type:',toreturn)
-        return toreturn
+
     def filetype(self, path):
         """returns filetype as a string
         filetype can be:
@@ -182,6 +148,8 @@ class File_list():
         2D-MS: 2DFTMS processed spectrum
         2D-ser: a Bruker ser imported from a ser / temporary file for 2D processing
         ???: undeciferable
+
+        newer version allows fast access over seadrive 
         """
         if DEBUG: print('**filetype** path:',path, end=':')
         if path.suffix == '.d':
@@ -239,7 +207,7 @@ class File_list():
         """
         the Path(name) of the json file
         """
-        eudir = Path.home()/'.eufticr'
+        eudir = Path.cwd()/'.eufticr'   # cwd() should be $HOME (which is not set !)
         if not eudir.exists():
             eudir.mkdir()
         return eudir/'filetypesDB.json'
