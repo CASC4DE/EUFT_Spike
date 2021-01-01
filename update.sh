@@ -1,7 +1,7 @@
 # update of a user account already installed
 
-echo update of 1 jan 2021
-
+echo update of 4 jan 2021
+cd $HOME
 echo "=== cleaning previous stuff"
 find $HOME -path '*.pyc' -delete
 mkdir -p prev_ipynb
