@@ -184,16 +184,19 @@ class File_list():
                 elif dim == 2:
                     try:
                         nodeobject = h5file.get_node('/projectionF2')
-                        toreturn = 'LC-MS'
-                        found = True
                     except tables.NoSuchNodeError:
                         found = False
+                    else:
+                        toreturn = 'LC-MS'
+                        found = True
+
                     if not found:
                         try:
                             nodeobject = h5file.get_node('/resol2/axes')
-                            toreturn = '2D-MS'
                         except tables.NoSuchNodeError:
                             toreturn = '2D-ser'
+                        else:
+                            toreturn = '2D-MS'
                 else:
                     toreturn = '???'
         elif path.name == 'acqus':

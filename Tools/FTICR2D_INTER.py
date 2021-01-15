@@ -691,7 +691,7 @@ class MS2Dscene(HBox):
         # peaklist
         self.peaklist = Output()  # the area where peak list is shown
         with self.peaklist:
-            display(NODATA)
+            display(HTML("<br><br><h3><i><center>Not implemented yet</center></i></h3>"))
 
         # # form
         # self.outform = Output()  # the area where processing parameters are displayed

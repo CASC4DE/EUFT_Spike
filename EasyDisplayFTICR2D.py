@@ -48,7 +48,6 @@ if os.uname().nodename == 'madMacBook':  # a switch for the development environm
 
 # %% [markdown]
 # #### *This program is still in development* -- *Please signal any problem while using it*
-# We're working on it !
 
 # %%
 import EUFT_Spike.Tools.FTICR2D_INTER as IF2

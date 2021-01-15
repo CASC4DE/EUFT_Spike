@@ -242,6 +242,9 @@ There is no limit on the size of the dataset to be explored.
 *During the development, tests where performed on a 1800 × 4096k experiment (1800 spectra of 4096k length)
 and the program was reasonably swift.*
 
+*However, the very first time you read an experiment, it may take some time to load the cache (1-2 minutes) - be patient -*
+
+
 #### Explore the experiment in 2D mode
 Using the interactive tools available in the 2D panel (see above)
 
@@ -294,12 +297,13 @@ This program allows to analyse **2D-MS FTICR** data-sets.
 Only processed 2DMS files in the Seafile deposit can be handled.
 
 Select the file you want look at, and Load, it will show-up as a full width 2D image.
+*The very first time you read a 2D experiment, it may take some time to load the cache (1-2 minutes) - be patient -*
 
 ## 2D Spectrum
 
 Is shown as a full width 2D image.
 
-- the F2/horizontal axis is the high resolution, direct axis. You find fragment ions along this line
+- the F2/horizontal axis is the high resolution, direct axis. You find fragment ions along this line.
 - the F1/vertical axis indirect axis, usually at lower resolution. You have parent ions along this axis. 
 - the top and right spectra show the diagonal of the experiment *( m/z<sub>F1</sub> = m/z<sub>F2</sub> )* .
 it should be equivalent to the complete parent + fragment spectrum.
@@ -323,13 +327,29 @@ the `Redraw` button loads the version of the data with the optimal resolution.
 The smaller the zoom box, the better the resolution.
 `#1` means you have the full resolution, higher numbers are lower resolution.
 
+## Classical problems
+- **If you are seeing a nearly empty image**
+    - try using the vertical slider on the left to adjust the viewing scale
+- **If you are seeing just vertical lines**
+    - it probably means you experiment is dominated with scintillation noise,
+        - try reprocess with a more SANE iterations and a small SANE rank
+        - try acquiring with a spray as stable as possible
+- **If you are seeing many closely related diagonals, and nearly empty top and right spectra**
+    - this is usually the cas when a wrong demodulation was applied,
+    the correct value should be the pulse frequency at the end of the P1 pulse.
+
 ## Tab Panels
 There several tab panels that play different roles
 
 #### 1D Extraction
 Slices from the complete experiment can be computed and displayed here, 
 
-*full doc to be written - sorry*
+- an horizontal slice, extracted at the *m/z* of a parent ion will show the spectrum of all the fragments of this parent.
+- a vertical slice, extracted at the *m/z* of a fragment ion will show the spectrum of all the parents which may generate fragments at this *m/z*.
+
+Be carefull that isotopic patterns are not aligned to the horizontal or vertical lines but are skewed,
+with an angle *z1/z2* relative to the main diagonal. (where *z1* - respectiveley *z2* are the charges of the ion on axis1 - resp. axis2).
+This will distord the spectra you extract along the main axes.
 
 #### Peak list
 is not active yet.
