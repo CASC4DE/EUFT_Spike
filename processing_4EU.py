@@ -20,6 +20,7 @@ import tables
 from scipy.signal import decimate, lfilter, cheby1, medfilt, medfilt2d
 import multiprocessing as mp
 import pickle
+import json
 import functools
 
 from spike.NPKConfigParser import NPKConfigParser
@@ -598,9 +599,12 @@ def load_input(name):
 
 class Proc_Parameters(object):
     """this class is a container for processing parameters"""
-    def __init__(self, configfile = None):
-        "initialisation, see processe.mscf for comments on parameters"
-        # processing
+    def __init__(self, configfile=None, verif=True):
+        """initialisation, see process.mscf for comments on parameters
+           if configfile != None, then it should be a config file - parsed with configparser
+           if verif == True (by default) and configfile ! None, the configuration is check for integrity
+        """
+        # processing param
         self.do_F2 = True
         self.do_F1 = True
         self.do_modulus = True
@@ -620,7 +624,7 @@ class Proc_Parameters(object):
         self.szmlist = None
         self.mp = False
         self.nproc = 4
-        # files
+        # files param
         self.apex = None
         self.format = None
         self.infile = None
@@ -635,7 +639,7 @@ class Proc_Parameters(object):
         self.freq_f1demodu = 0.0
         
         if configfile:
-            self.load(configfile)
+            self.load(configfile, verif=verif)
     def from_json(self, jsontxt):
         "updates attributes from json text input"
         dic = json.loads(jsontxt)
@@ -651,8 +655,11 @@ class Proc_Parameters(object):
                 if not callable(v):
                     out[i] =  v
         return json.dumps(out)
-    def load(self, cp):
-        "load from cp config file - should have been opened with ConfigParser() first"
+    def load(self, cp, verif=True):
+        """
+        load from cp config file - should have been opened with ConfigParser() first
+        if verif == True (by default) the configuration is check for integrity
+        """
         if cp.has_option("processing", "sizemulipliers"):   # that nasty bug was around once.
             raise Exception('Error on the name of sizemultiplier parameter, sizemuliplier instead of sizemultiplier')
         self.apex =    cp.get( "import", "apex", '.')                                   # input file
@@ -701,7 +708,8 @@ class Proc_Parameters(object):
             if debug>0: print("szmlist:", self.szmlist)
         else:
             self.szmlist = None
-        self.verify()
+        if verif:
+            self.verify()
     def verify(self):
         "performs internal coherence of parameters"
         if not self.do_F1 and not self.do_F2:
@@ -731,6 +739,15 @@ class Proc_Parameters(object):
         
     def report(self):
         "print a formatted report"
+        # verify integrity
+        ok = True
+        try:
+            self.verif()
+        except:
+            ok = False
+        if not ok:
+            print("------------------- WARNING -------------------------")
+            print(" THIS CONFIGURATION APPEARS TO CONTAIN INCOMPATIBLE PARAMETERS")
         print("------------ processing parameters ------------------")
         for i in dir(self):
             if not i.startswith('_'):
