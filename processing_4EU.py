@@ -742,7 +742,7 @@ class Proc_Parameters(object):
         # verify integrity
         ok = True
         try:
-            self.verif()
+            self.verify()
         except:
             ok = False
         if not ok:
