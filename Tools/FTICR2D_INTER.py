@@ -451,7 +451,7 @@ class MR_interact(MR):
         if self.b_accu.value != 'graphic':
             self.spec_ax1D.clear()
             label = None
-        self.r1D.display(xlabel='m/z', show=False, figure=self.pltaxe1D, new_fig=False, label=label, title=title)
+        self.r1D.display(xlabel='m/z', show=False, figure=self.spec_ax1D, new_fig=False, label=label, title=title)
 
 
 class MSPeaker(object):
