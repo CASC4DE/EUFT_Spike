@@ -204,7 +204,7 @@ class MR_interact(MR):
         return HBox([innerbox,toolbox])
     def spec_box(self):
         "defines the spectral box widget"
-        self.scale = widgets.FloatSlider(description='scale:', value=1.0, min=0.5, max=32, step=0.1,
+        self.scale = widgets.FloatSlider(description='scale:', value=1.0, min=0.1, max=32, step=0.1,
                     tooltip='Set display scale', layout=Layout(width='100px', height='400px'), continuous_update=p.HEAVY,
                     orientation='vertical')
         self.scale.observe(self.ob)
