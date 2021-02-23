@@ -982,6 +982,7 @@ def main(argv = None):
             print("######################### Checked ################")
     else:
         d1 = None
+        hfar = None
     logflux.log.flush()     # flush logfile
     ###### Do processing
     print("""
@@ -1040,32 +1041,36 @@ def main(argv = None):
     cleaning and closing
 =============================""")
     # copy files and parameters
-    hfar.store_internal_file(filename=configfile, h5name="config.mscf", where='/attached')  # first mscf
-    try:
-        hfar.store_internal_object( h5name='params', obj=d0.hdf5file.retrieve_object(h5name='params') )
-    except:
-        print("No params copied to Output file") 
-    print("parameters and configuration file copied")
-
-    for h5name in ["apexAcquisition.method", "ExciteSweep"]:    # then parameter files
+    if hfar is not None:
+        hfar.store_internal_file(filename=configfile, h5name="config.mscf", where='/attached')  # first mscf
         try:
-            Finh5 = d0.hdf5file.open_internal_file(h5name)
+            hfar.store_internal_object( h5name='params', obj=d0.hdf5file.retrieve_object(h5name='params') )
         except:
-            print("no %s internal file to copy"%h5name)
-        else:   # performed only if no error
-            Fouth5 = hfar.open_internal_file(h5name, access='w')
-            Fouth5.write(Finh5.read())
-            Finh5.close()
-            Fouth5.close()
-            print("%s internal file copied"%h5name)
-    # then logfile
-    logflux.log.flush()     # flush logfile
-    hfar.store_internal_file(filename=logflux.log_name, h5name="processing.log", where='/attached')
-    print("log file copied")
-    # and close
-    d0.hdf5file.close()
-    hfar.close()
-    
+            print("No params copied to Output file") 
+        else:
+            print("parameters and configuration file copied")
+
+        for h5name in ["apexAcquisition.method", "ExciteSweep"]:    # then parameter files
+            try:
+                Finh5 = d0.hdf5file.open_internal_file(h5name)
+            except:
+                print("no %s internal file to copy"%h5name)
+            else:   # performed only if no error
+                Fouth5 = hfar.open_internal_file(h5name, access='w')
+                Fouth5.write(Finh5.read())
+                Finh5.close()
+                Fouth5.close()
+                print("%s internal file copied"%h5name)
+        # then logfile
+        logflux.log.flush()     # flush logfile
+        hfar.store_internal_file(filename=logflux.log_name, h5name="processing.log", where='/attached')
+        print("log file copied")
+        # and close
+        d0.hdf5file.close()
+        hfar.close()
+    else:
+        d0.hdf5file.close()
+ 
     if param.mp:
         Pool.close()    # finally closes multiprocessing slaves
     logflux.log.flush()     # flush logfile
